@@ -73,4 +73,4 @@ python record_vla1_complete_review.py
 | `data/color_grasp_demos.npz` | 双色抓取示教数据。 |
 | `checkpoints/color_grasp_vla.pt` | 颜色抓取行为克隆检查点。 |
 | `artifacts/` | 成功回放、JSON 证据和 HTML 复盘。 |
-| `docs/` | 架构和面试边界说明。 |
+| `docs/` | 架构与技术边界说明。 |
