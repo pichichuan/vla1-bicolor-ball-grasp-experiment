@@ -1,0 +1,170 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>环境难度对比表</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1800px;margin:auto;padding:24px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16;font-size:14px}th,td{padding:9px;border:1px solid #28543d;text-align:center}.note{line-height:1.8;color:#bdcdc3}a{display:inline-block;margin-right:10px;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:500px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>机械臂环境难度对比表</h1><p class="note">数据来自已完成的MuJoCo离线数据域实验和视觉故障注入。难度分用于本项目内部排序，不是行业标准。评分只使用检测、像素、候选与规划指标，避免因部分故障未执行而产生不公平比较。</p>
+<a href="environment_difficulty_table.json" target="_blank">JSON</a><a href="environment_difficulty_table.csv">CSV</a><h2>可视化表</h2><img src="environment_difficulty_table.png?v=2026-08-11T21:57:38+08:00">
+<h2>数据表</h2><table><tr><th>排名</th><th>环境</th><th>检测</th><th>像素</th><th>检测误差/cm</th><th>候选</th><th>可规划</th><th>完整执行</th><th>放置误差/cm</th><th>难度分</th><th>等级</th><th>建议</th></tr><tr><td>9</td><td>幕布</td><td>成功</td><td>22</td><td>0.222</td><td>9/75</td><td>是</td><td>是</td><td>0.581</td><td>4.1</td><td>低</td><td>适合作为标定与回归基线</td></tr><tr><td>8</td><td>室内</td><td>成功</td><td>20</td><td>0.263</td><td>9/75</td><td>是</td><td>是</td><td>0.72</td><td>6.2</td><td>低</td><td>加入色温和曝光增强</td></tr><tr><td>6</td><td>室外</td><td>成功</td><td>19</td><td>0.831</td><td>9/75</td><td>是</td><td>是</td><td>2.254</td><td>13.3</td><td>中</td><td>使用HDR、自动曝光和户外增强</td></tr><tr><td>1</td><td>强光</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>否</td><td>-</td><td>100.0</td><td>极高</td><td>遮光罩、HDR、偏振镜并触发重拍</td></tr><tr><td>2</td><td>阴影</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>否</td><td>-</td><td>100.0</td><td>极高</td><td>主动补光和亮度归一化</td></tr><tr><td>3</td><td>遮挡</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>否</td><td>-</td><td>100.0</td><td>极高</td><td>时序跟踪、多视角并等待目标重现</td></tr><tr><td>7</td><td>尘土</td><td>成功</td><td>16</td><td>0.482</td><td>9/75</td><td>是</td><td>否</td><td>-</td><td>12.0</td><td>中</td><td>镜头密封清洁和图像质量监控</td></tr><tr><td>4</td><td>反光</td><td>成功</td><td>19</td><td>7.183</td><td>9/75</td><td>是</td><td>否</td><td>-</td><td>59.2</td><td>高</td><td>偏振镜、深度融合、连通域约束</td></tr><tr><td>5</td><td>相机晃动</td><td>成功</td><td>6</td><td>2.238</td><td>9/75</td><td>是</td><td>否</td><td>-</td><td>39.6</td><td>高</td><td>短曝光、稳像与IMU时间同步</td></tr></table>
+<h2>评分公式</h2><p class="note">目标漏检=100分；检测成功时：55×min(定位误差/5cm,1)+20×像素不足比例+15×无法规划+10×无候选。等级：低≤8，中≤20，高≤60，极高&gt;60。</p>
+<h2>完整JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T21:57:38+08:00&quot;,
+  &quot;评分性质&quot;: &quot;本项目内部相对难度分，不是行业标准&quot;,
+  &quot;评分公式&quot;: &quot;漏检=100；否则55*min(误差/5cm,1)+20*像素不足比例+15*无法规划+10*无候选&quot;,
+  &quot;等级阈值&quot;: {
+    &quot;低&quot;: &quot;≤8&quot;,
+    &quot;中&quot;: &quot;8~20&quot;,
+    &quot;高&quot;: &quot;20~60&quot;,
+    &quot;极高&quot;: &quot;&gt;60&quot;
+  },
+  &quot;环境&quot;: [
+    {
+      &quot;环境&quot;: &quot;幕布&quot;,
+      &quot;数据类型&quot;: &quot;离线数据域模拟+完整执行&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 22,
+      &quot;检测误差_厘米&quot;: 0.222,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: true,
+      &quot;执行成功&quot;: true,
+      &quot;放置误差_厘米&quot;: 0.581,
+      &quot;难度分&quot;: 4.1,
+      &quot;难度等级&quot;: &quot;低&quot;,
+      &quot;建议&quot;: &quot;适合作为标定与回归基线&quot;,
+      &quot;难度排名&quot;: 9
+    },
+    {
+      &quot;环境&quot;: &quot;室内&quot;,
+      &quot;数据类型&quot;: &quot;离线数据域模拟+完整执行&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 20,
+      &quot;检测误差_厘米&quot;: 0.263,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: true,
+      &quot;执行成功&quot;: true,
+      &quot;放置误差_厘米&quot;: 0.72,
+      &quot;难度分&quot;: 6.2,
+      &quot;难度等级&quot;: &quot;低&quot;,
+      &quot;建议&quot;: &quot;加入色温和曝光增强&quot;,
+      &quot;难度排名&quot;: 8
+    },
+    {
+      &quot;环境&quot;: &quot;室外&quot;,
+      &quot;数据类型&quot;: &quot;离线数据域模拟+完整执行&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 19,
+      &quot;检测误差_厘米&quot;: 0.831,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: true,
+      &quot;执行成功&quot;: true,
+      &quot;放置误差_厘米&quot;: 2.254,
+      &quot;难度分&quot;: 13.3,
+      &quot;难度等级&quot;: &quot;中&quot;,
+      &quot;建议&quot;: &quot;使用HDR、自动曝光和户外增强&quot;,
+      &quot;难度排名&quot;: 6
+    },
+    {
+      &quot;环境&quot;: &quot;强光&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;漏检&quot;,
+      &quot;目标像素数&quot;: 0,
+      &quot;检测误差_厘米&quot;: null,
+      &quot;候选通过&quot;: 0,
+      &quot;可规划&quot;: false,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 100.0,
+      &quot;难度等级&quot;: &quot;极高&quot;,
+      &quot;建议&quot;: &quot;遮光罩、HDR、偏振镜并触发重拍&quot;,
+      &quot;难度排名&quot;: 1
+    },
+    {
+      &quot;环境&quot;: &quot;阴影&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;漏检&quot;,
+      &quot;目标像素数&quot;: 0,
+      &quot;检测误差_厘米&quot;: null,
+      &quot;候选通过&quot;: 0,
+      &quot;可规划&quot;: false,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 100.0,
+      &quot;难度等级&quot;: &quot;极高&quot;,
+      &quot;建议&quot;: &quot;主动补光和亮度归一化&quot;,
+      &quot;难度排名&quot;: 2
+    },
+    {
+      &quot;环境&quot;: &quot;遮挡&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;漏检&quot;,
+      &quot;目标像素数&quot;: 0,
+      &quot;检测误差_厘米&quot;: null,
+      &quot;候选通过&quot;: 0,
+      &quot;可规划&quot;: false,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 100.0,
+      &quot;难度等级&quot;: &quot;极高&quot;,
+      &quot;建议&quot;: &quot;时序跟踪、多视角并等待目标重现&quot;,
+      &quot;难度排名&quot;: 3
+    },
+    {
+      &quot;环境&quot;: &quot;尘土&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 16,
+      &quot;检测误差_厘米&quot;: 0.482,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 12.0,
+      &quot;难度等级&quot;: &quot;中&quot;,
+      &quot;建议&quot;: &quot;镜头密封清洁和图像质量监控&quot;,
+      &quot;难度排名&quot;: 7
+    },
+    {
+      &quot;环境&quot;: &quot;反光&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 19,
+      &quot;检测误差_厘米&quot;: 7.183,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 59.2,
+      &quot;难度等级&quot;: &quot;高&quot;,
+      &quot;建议&quot;: &quot;偏振镜、深度融合、连通域约束&quot;,
+      &quot;难度排名&quot;: 4
+    },
+    {
+      &quot;环境&quot;: &quot;相机晃动&quot;,
+      &quot;数据类型&quot;: &quot;离线故障注入/检测与候选&quot;,
+      &quot;目标检测&quot;: &quot;成功&quot;,
+      &quot;目标像素数&quot;: 6,
+      &quot;检测误差_厘米&quot;: 2.238,
+      &quot;候选通过&quot;: 9,
+      &quot;可规划&quot;: true,
+      &quot;完整执行&quot;: false,
+      &quot;执行成功&quot;: null,
+      &quot;放置误差_厘米&quot;: null,
+      &quot;难度分&quot;: 39.6,
+      &quot;难度等级&quot;: &quot;高&quot;,
+      &quot;建议&quot;: &quot;短曝光、稳像与IMU时间同步&quot;,
+      &quot;难度排名&quot;: 5
+    }
+  ],
+  &quot;汇总&quot;: {
+    &quot;环境数&quot;: 9,
+    &quot;低难度&quot;: 2,
+    &quot;中难度&quot;: 2,
+    &quot;高难度&quot;: 2,
+    &quot;极高难度&quot;: 3
+  }
+}</pre></main></body></html>

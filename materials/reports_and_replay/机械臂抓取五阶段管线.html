@@ -1,0 +1,523 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>机械臂抓取五阶段管线</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1180px;margin:auto;padding:28px}
+h1,h2{color:#70eaa3}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.box{padding:16px;background:#10241a;border:1px solid #286142;border-radius:12px;text-align:center}
+img{width:100%;border-radius:12px;border:1px solid #2c6547}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:11px;border:1px solid #28543d}
+pre{white-space:pre-wrap;background:#040906;padding:16px;border-radius:9px;max-height:500px;overflow:auto}.note{color:#afc1b5;line-height:1.8}
+.json-link{display:inline-block;margin:18px 0 4px;padding:11px 18px;border-radius:9px;background:#28a866;color:#fff;text-decoration:none;font-weight:700}.json-link:hover{background:#35c67c}
+</style></head><body><main><h1>机械臂抓取：检测 → 候选 → 过滤 → 规划 → 结果</h1>
+<div class="flow"><div class="box">1<br>RGB颜色检测</div><div class="box">2<br>75个候选</div><div class="box">3<br>几何与碰撞过滤</div><div class="box">4<br>评分与路径规划</div><div class="box">5<br>MuJoCo执行</div></div>
+<a class="json-link" href="grasp_five_stage_pipeline.json" target="_blank">查看独立 JSON 输出</a>
+<h2>可视化</h2><img src="grasp_five_stage_pipeline.png?v=2026-08-11T21:20:47+08:00">
+<h2>三场景结果</h2><table><tr><th>试验</th><th>目标</th><th>候选</th><th>通过</th><th>选中ID</th><th>误差/cm</th><th>结果</th></tr><tr><td>1</td><td>green</td><td>75</td><td>9</td><td>38</td><td>0.211</td><td>成功</td></tr><tr><td>2</td><td>red</td><td>75</td><td>9</td><td>38</td><td>0.332</td><td>成功</td></tr><tr><td>3</td><td>green</td><td>75</td><td>9</td><td>38</td><td>1.325</td><td>成功</td></tr></table>
+<p class="note">成功率：3/3（100.0%）。控制只使用RGB检测到的球位置；MuJoCo物体真值仅用于执行后的客观评分。</p>
+<h2>JSON 结构化输出</h2><p class="note">以下内容与独立 JSON 文件一致，可直接复制用于程序解析或面试演示。</p><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T21:20:47+08:00&quot;,
+  &quot;系统&quot;: &quot;robosuite ColorBallPlace / Panda / MuJoCo&quot;,
+  &quot;管线&quot;: [
+    &quot;检测&quot;,
+    &quot;候选&quot;,
+    &quot;过滤&quot;,
+    &quot;规划&quot;,
+    &quot;结果&quot;
+  ],
+  &quot;说明&quot;: &quot;动作使用RGB估计；仿真真值只用于最终评分&quot;,
+  &quot;试验&quot;: [
+    {
+      &quot;试验编号&quot;: 1,
+      &quot;目标颜色&quot;: &quot;green&quot;,
+      &quot;参考颜色&quot;: &quot;red&quot;,
+      &quot;检测&quot;: {
+        &quot;目标像素数&quot;: 25,
+        &quot;参考像素数&quot;: 19,
+        &quot;目标位置_米&quot;: [
+          0.097523,
+          -0.032293,
+          0.818
+        ],
+        &quot;参考位置_米&quot;: [
+          -0.0458,
+          0.069245,
+          0.818
+        ]
+      },
+      &quot;候选统计&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;选中候选&quot;: {
+        &quot;候选ID&quot;: 38,
+        &quot;位置_米&quot;: [
+          0.09752264768718749,
+          -0.03229288178640823,
+          0.818
+        ],
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.911348,
+        &quot;评分分量&quot;: {
+          &quot;居中&quot;: 1.0,
+          &quot;障碍间距&quot;: 0.847786,
+          &quot;运动代价&quot;: 0.747007,
+          &quot;视觉置信度&quot;: 1.0
+        }
+      },
+      &quot;规划路径&quot;: [
+        {
+          &quot;阶段&quot;: &quot;预抓取&quot;,
+          &quot;位置_米&quot;: [
+            0.097523,
+            -0.032293,
+            0.918
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抓取&quot;,
+          &quot;位置_米&quot;: [
+            0.097523,
+            -0.032293,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抬升&quot;,
+          &quot;位置_米&quot;: [
+            0.097523,
+            -0.032293,
+            0.982
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;运输&quot;,
+          &quot;位置_米&quot;: [
+            0.0442,
+            0.069245,
+            1.058
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;落桌&quot;,
+          &quot;位置_米&quot;: [
+            0.0442,
+            0.069245,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;松手&quot;,
+          &quot;位置_米&quot;: [
+            0.0442,
+            0.069245,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;退回&quot;,
+          &quot;位置_米&quot;: [
+            0.0442,
+            0.069245,
+            0.938
+          ]
+        }
+      ],
+      &quot;执行结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 193,
+        &quot;目标误差_厘米&quot;: 0.211,
+        &quot;目标移动_厘米&quot;: 11.028,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          0.046291,
+          0.06895,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          -0.043277,
+          0.068909,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 20
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 35
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 51
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 70
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 84
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 109
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 159
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 177
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 192
+          }
+        ]
+      }
+    },
+    {
+      &quot;试验编号&quot;: 2,
+      &quot;目标颜色&quot;: &quot;red&quot;,
+      &quot;参考颜色&quot;: &quot;green&quot;,
+      &quot;检测&quot;: {
+        &quot;目标像素数&quot;: 26,
+        &quot;参考像素数&quot;: 18,
+        &quot;目标位置_米&quot;: [
+          0.086407,
+          -0.085501,
+          0.818
+        ],
+        &quot;参考位置_米&quot;: [
+          -0.096575,
+          -0.102272,
+          0.818
+        ]
+      },
+      &quot;候选统计&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;选中候选&quot;: {
+        &quot;候选ID&quot;: 38,
+        &quot;位置_米&quot;: [
+          0.08640707209224593,
+          -0.0855009813078063,
+          0.818
+        ],
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.929276,
+        &quot;评分分量&quot;: {
+          &quot;居中&quot;: 1.0,
+          &quot;障碍间距&quot;: 0.898432,
+          &quot;运动代价&quot;: 0.773339,
+          &quot;视觉置信度&quot;: 1.0
+        }
+      },
+      &quot;规划路径&quot;: [
+        {
+          &quot;阶段&quot;: &quot;预抓取&quot;,
+          &quot;位置_米&quot;: [
+            0.086407,
+            -0.085501,
+            0.918
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抓取&quot;,
+          &quot;位置_米&quot;: [
+            0.086407,
+            -0.085501,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抬升&quot;,
+          &quot;位置_米&quot;: [
+            0.086407,
+            -0.085501,
+            0.982
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;运输&quot;,
+          &quot;位置_米&quot;: [
+            -0.006575,
+            -0.102272,
+            1.058
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;落桌&quot;,
+          &quot;位置_米&quot;: [
+            -0.006575,
+            -0.102272,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;松手&quot;,
+          &quot;位置_米&quot;: [
+            -0.006575,
+            -0.102272,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;退回&quot;,
+          &quot;位置_米&quot;: [
+            -0.006575,
+            -0.102272,
+            0.938
+          ]
+        }
+      ],
+      &quot;执行结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 188,
+        &quot;目标误差_厘米&quot;: 0.332,
+        &quot;目标移动_厘米&quot;: 8.837,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          -0.003286,
+          -0.101819,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          -0.095925,
+          -0.098073,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 18
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 32
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 48
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 66
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 79
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 104
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 154
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 172
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 187
+          }
+        ]
+      }
+    },
+    {
+      &quot;试验编号&quot;: 3,
+      &quot;目标颜色&quot;: &quot;green&quot;,
+      &quot;参考颜色&quot;: &quot;red&quot;,
+      &quot;检测&quot;: {
+        &quot;目标像素数&quot;: 15,
+        &quot;参考像素数&quot;: 25,
+        &quot;目标位置_米&quot;: [
+          -0.065559,
+          0.022886,
+          0.818
+        ],
+        &quot;参考位置_米&quot;: [
+          0.05943,
+          -0.081942,
+          0.818
+        ]
+      },
+      &quot;候选统计&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;选中候选&quot;: {
+        &quot;候选ID&quot;: 38,
+        &quot;位置_米&quot;: [
+          -0.06555902559394491,
+          0.022885828723629358,
+          0.818
+        ],
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.891542,
+        &quot;评分分量&quot;: {
+          &quot;居中&quot;: 1.0,
+          &quot;障碍间距&quot;: 0.769556,
+          &quot;运动代价&quot;: 0.933267,
+          &quot;视觉置信度&quot;: 0.625
+        }
+      },
+      &quot;规划路径&quot;: [
+        {
+          &quot;阶段&quot;: &quot;预抓取&quot;,
+          &quot;位置_米&quot;: [
+            -0.065559,
+            0.022886,
+            0.918
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抓取&quot;,
+          &quot;位置_米&quot;: [
+            -0.065559,
+            0.022886,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;抬升&quot;,
+          &quot;位置_米&quot;: [
+            -0.065559,
+            0.022886,
+            0.982
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;运输&quot;,
+          &quot;位置_米&quot;: [
+            -0.03057,
+            -0.081942,
+            1.058
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;落桌&quot;,
+          &quot;位置_米&quot;: [
+            -0.03057,
+            -0.081942,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;松手&quot;,
+          &quot;位置_米&quot;: [
+            -0.03057,
+            -0.081942,
+            0.822
+          ]
+        },
+        {
+          &quot;阶段&quot;: &quot;退回&quot;,
+          &quot;位置_米&quot;: [
+            -0.03057,
+            -0.081942,
+            0.938
+          ]
+        }
+      ],
+      &quot;执行结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 181,
+        &quot;目标误差_厘米&quot;: 1.325,
+        &quot;目标移动_厘米&quot;: 11.734,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          -0.019239,
+          -0.088818,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          0.05439,
+          -0.080228,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 10
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 24
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 40
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 58
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 72
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 97
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 147
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 165
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 180
+          }
+        ]
+      }
+    }
+  ],
+  &quot;汇总&quot;: {
+    &quot;试验数&quot;: 3,
+    &quot;成功数&quot;: 3,
+    &quot;成功率_百分比&quot;: 100.0,
+    &quot;平均目标误差_厘米&quot;: 0.623
+  }
+}</pre>
+</main></body></html>

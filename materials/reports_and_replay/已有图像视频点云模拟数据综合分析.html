@@ -1,0 +1,211 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>已有多模态数据综合分析</title>
+<style>body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1500px;margin:auto;padding:26px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:10px;border:1px solid #28543d;text-align:center}.note{line-height:1.8;color:#bdcdc3}.warn{color:#ffd166}a{display:inline-block;margin-right:10px;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:520px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>已有图像、视频、点云或模拟数据分析</h1><p class="note">本报告只读取电脑中已经存在的项目产物，不重新生成实验结果。不同项目的数据不能直接视为同一传感器时间轴上的融合数据。</p>
+<a href="existing_multimodal_analysis.json" target="_blank">JSON</a><a href="existing_multimodal_analysis.csv">CSV</a><h2>总览</h2><img src="existing_multimodal_analysis.png?v=2026-08-11T21:48:24+08:00">
+<h2>图像</h2><p class="note">强光、阴影、遮挡导致漏检；反光仍通过过滤但定位误差达到7.183 cm，是危险的静默错误。</p>
+<h2>视频</h2><p class="note">249帧视频可完整解码；两次放置均一次成功，红球回填误差1.906 cm高于绿球的0.610 cm。</p>
+<h2>点云</h2><table><tr><th>文件</th><th>点数</th><th>XYZ跨度/m</th><th>P95水平半径/m</th><th>有效点</th></tr><tr><td>lidar_single_scan_sensor.ply</td><td>242</td><td>[9.841, 9.841, 0.0]</td><td>6.621</td><td>100.0%</td></tr><tr><td>lidar_accumulated_world.ply</td><td>5650</td><td>[11.0837, 9.9016, 0.7142]</td><td>6.244</td><td>100.0%</td></tr><tr><td>building_3d_slam_map.ply</td><td>4598</td><td>[17.5119, 16.2748, 5.9775]</td><td>8.958</td><td>100.0%</td></tr></table><p class="note warn">累计世界点云为单帧点数的23.347倍；建筑地图仅1个关键帧、0次回环，只能证明链路跑通，尚不能证明长期全局一致性。</p>
+<h2>模拟与日志</h2><p class="note">自动A*在同为100%成功的3次测试中，耗时降低30.09%、路径缩短26.44%，最小障碍距离由0.010 m提升至0.243 m；但手动基线是脚本路径，不是人工键盘实验。</p><p class="note warn">证据边界：手动导航是人工编写的脚本航点，不是交互键盘驾驶；点云地图没有多关键帧和回环；ROS2位姿频率较低。这些结果适合验证链路和准备面试，不应包装成真实道路或真实工厂测试。</p>
+<h2>完整 JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T21:48:24+08:00&quot;,
+  &quot;分析原则&quot;: &quot;仅分析已有文件；仿真、离线故障注入与真实采集明确区分&quot;,
+  &quot;图像&quot;: {
+    &quot;文件&quot;: &quot;C:\\Users\\ROG\\robosuite_vla_tutorial\\reports\\visual_failure_cases.png&quot;,
+    &quot;分辨率&quot;: [
+      1530,
+      1120
+    ],
+    &quot;文件大小_字节&quot;: 998464,
+    &quot;平均亮度&quot;: 142.146,
+    &quot;亮度标准差&quot;: 106.827,
+    &quot;过暗像素比例_百分比&quot;: 33.331,
+    &quot;过亮像素比例_百分比&quot;: 43.217,
+    &quot;故障案例数&quot;: 6,
+    &quot;阻断规划数&quot;: 3,
+    &quot;仍可规划数&quot;: 3,
+    &quot;关键发现&quot;: &quot;强光、阴影、遮挡导致漏检；反光仍通过过滤但定位误差达到7.183 cm，是危险的静默错误。&quot;
+  },
+  &quot;视频&quot;: {
+    &quot;文件&quot;: &quot;C:\\Users\\ROG\\robosuite_vla_tutorial\\reports\\vla1_complete_grasp_review.webm&quot;,
+    &quot;编码器读取分辨率&quot;: [
+      1280,
+      720
+    ],
+    &quot;帧率_fps&quot;: 10.0,
+    &quot;报告帧数&quot;: 249,
+    &quot;实际解码帧数&quot;: 249,
+    &quot;时长_秒&quot;: 24.9,
+    &quot;文件大小_字节&quot;: 3900765,
+    &quot;平均亮度&quot;: 127.323,
+    &quot;平均清晰度_Laplacian方差&quot;: 1237.634,
+    &quot;平均帧间变化&quot;: 2.022,
+    &quot;动作数&quot;: 2,
+    &quot;成功动作数&quot;: 2,
+    &quot;平均放置误差_厘米&quot;: 1.258,
+    &quot;最大放置误差_厘米&quot;: 1.906,
+    &quot;关键发现&quot;: &quot;249帧视频可完整解码；两次放置均一次成功，红球回填误差1.906 cm高于绿球的0.610 cm。&quot;
+  },
+  &quot;点云&quot;: {
+    &quot;点云&quot;: [
+      {
+        &quot;文件&quot;: &quot;D:\\Codex\\mingming_ugv_mujoco\\lidar_single_scan_sensor.ply&quot;,
+        &quot;声明点数&quot;: 242,
+        &quot;实际点数&quot;: 242,
+        &quot;有限点比例_百分比&quot;: 100.0,
+        &quot;XYZ最小值_米&quot;: [
+          -4.9205,
+          -4.9205,
+          0.0
+        ],
+        &quot;XYZ最大值_米&quot;: [
+          4.9205,
+          4.9205,
+          0.0
+        ],
+        &quot;XYZ跨度_米&quot;: [
+          9.841,
+          9.841,
+          0.0
+        ],
+        &quot;水平半径P50_米&quot;: 5.094,
+        &quot;水平半径P95_米&quot;: 6.621,
+        &quot;XY包围盒点密度_点每平方米&quot;: 2.499,
+        &quot;毫米取整唯一点比例_百分比&quot;: 100.0,
+        &quot;强度均值&quot;: 0.3098,
+        &quot;强度范围&quot;: [
+          0.0059,
+          0.7804
+        ]
+      },
+      {
+        &quot;文件&quot;: &quot;D:\\Codex\\mingming_ugv_mujoco\\lidar_accumulated_world.ply&quot;,
+        &quot;声明点数&quot;: 5650,
+        &quot;实际点数&quot;: 5650,
+        &quot;有限点比例_百分比&quot;: 100.0,
+        &quot;XYZ最小值_米&quot;: [
+          -5.6629,
+          -4.92,
+          0.0
+        ],
+        &quot;XYZ最大值_米&quot;: [
+          5.4208,
+          4.9816,
+          0.7142
+        ],
+        &quot;XYZ跨度_米&quot;: [
+          11.0837,
+          9.9016,
+          0.7142
+        ],
+        &quot;水平半径P50_米&quot;: 4.97,
+        &quot;水平半径P95_米&quot;: 6.244,
+        &quot;XY包围盒点密度_点每平方米&quot;: 51.482,
+        &quot;毫米取整唯一点比例_百分比&quot;: 99.894,
+        &quot;强度均值&quot;: 0.2742,
+        &quot;强度范围&quot;: [
+          0.0052,
+          0.7804
+        ]
+      },
+      {
+        &quot;文件&quot;: &quot;D:\\Codex\\mingming_ugv_mujoco\\building_3d_slam_map.ply&quot;,
+        &quot;声明点数&quot;: 4598,
+        &quot;实际点数&quot;: 4598,
+        &quot;有限点比例_百分比&quot;: 100.0,
+        &quot;XYZ最小值_米&quot;: [
+          -8.8812,
+          -7.9726,
+          -0.1111
+        ],
+        &quot;XYZ最大值_米&quot;: [
+          8.6307,
+          8.3022,
+          5.8664
+        ],
+        &quot;XYZ跨度_米&quot;: [
+          17.5119,
+          16.2748,
+          5.9775
+        ],
+        &quot;水平半径P50_米&quot;: 6.464,
+        &quot;水平半径P95_米&quot;: 8.958,
+        &quot;XY包围盒点密度_点每平方米&quot;: 16.133,
+        &quot;毫米取整唯一点比例_百分比&quot;: 99.978,
+        &quot;强度均值&quot;: 1.0,
+        &quot;强度范围&quot;: [
+          1.0,
+          1.0
+        ]
+      }
+    ],
+    &quot;累计点数相对单帧倍数&quot;: 23.347,
+    &quot;SLAM元数据&quot;: {
+      &quot;coordinate_frame&quot;: &quot;slam_map&quot;,
+      &quot;pose_source&quot;: &quot;wheel odometry + IMU + 3D ICP + loop closure&quot;,
+      &quot;ground_truth_used_for_estimation&quot;: false,
+      &quot;motion_model&quot;: &quot;ground vehicle SE(2), 3D cloud with IMU roll/pitch&quot;,
+      &quot;voxel_size_m&quot;: 0.1,
+      &quot;points&quot;: 4598,
+      &quot;keyframes&quot;: 1,
+      &quot;loop_closures&quot;: 0,
+      &quot;formats&quot;: [
+        &quot;building_3d_slam_map.pcd&quot;,
+        &quot;building_3d_slam_map.ply&quot;,
+        &quot;building_3d_slam_map.csv&quot;
+      ]
+    },
+    &quot;关键发现&quot;: &quot;累计世界点云为单帧点数的23.347倍；建筑地图仅1个关键帧、0次回环，只能证明链路跑通，尚不能证明长期全局一致性。&quot;
+  },
+  &quot;模拟与日志&quot;: {
+    &quot;机械臂五阶段&quot;: {
+      &quot;试验数&quot;: 3,
+      &quot;成功数&quot;: 3,
+      &quot;成功率_百分比&quot;: 100.0,
+      &quot;平均目标误差_厘米&quot;: 0.623
+    },
+    &quot;数据域对比&quot;: {
+      &quot;数据域数&quot;: 3,
+      &quot;成功数&quot;: 3,
+      &quot;成功率_百分比&quot;: 100.0,
+      &quot;平均检测误差_厘米&quot;: 0.439,
+      &quot;平均放置误差_厘米&quot;: 1.185
+    },
+    &quot;视觉故障&quot;: {
+      &quot;问题数&quot;: 6,
+      &quot;阻断规划数&quot;: 3,
+      &quot;仍可规划数&quot;: 3
+    },
+    &quot;导航手动脚本&quot;: {
+      &quot;test_count&quot;: 3,
+      &quot;success_count&quot;: 3,
+      &quot;success_rate_pct&quot;: 100.0,
+      &quot;mean_elapsed_s&quot;: 43.9,
+      &quot;mean_path_length_m&quot;: 11.662,
+      &quot;minimum_obstacle_clearance_m&quot;: 0.01,
+      &quot;mean_minimum_obstacle_clearance_m&quot;: 0.01
+    },
+    &quot;导航自动A星&quot;: {
+      &quot;test_count&quot;: 3,
+      &quot;success_count&quot;: 3,
+      &quot;success_rate_pct&quot;: 100.0,
+      &quot;mean_elapsed_s&quot;: 30.69,
+      &quot;mean_path_length_m&quot;: 8.578,
+      &quot;minimum_obstacle_clearance_m&quot;: 0.243,
+      &quot;mean_minimum_obstacle_clearance_m&quot;: 0.243
+    },
+    &quot;自动导航相对手动&quot;: {
+      &quot;耗时降低_百分比&quot;: 30.09,
+      &quot;路径缩短_百分比&quot;: 26.44,
+      &quot;最小障碍距离倍数&quot;: 24.3
+    },
+    &quot;ROS2任务包&quot;: {
+      &quot;消息数&quot;: 60,
+      &quot;时长_秒&quot;: 17.6735,
+      &quot;位姿采样数&quot;: 9,
+      &quot;位姿平均频率_Hz&quot;: 0.453,
+      &quot;所有检查通过&quot;: true,
+      &quot;最终速度_mps&quot;: -0.0383
+    },
+    &quot;关键发现&quot;: &quot;自动A*在同为100%成功的3次测试中，耗时降低30.09%、路径缩短26.44%，最小障碍距离由0.010 m提升至0.243 m；但手动基线是脚本路径，不是人工键盘实验。&quot;
+  }
+}</pre></main></body></html>

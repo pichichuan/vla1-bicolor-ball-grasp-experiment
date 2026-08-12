@@ -1,0 +1,493 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>机械臂幕布室内室外数据对比</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1540px;margin:auto;padding:26px}h1,h2{color:#70eaa3}
+img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:11px;border:1px solid #28543d;text-align:center}
+.note{line-height:1.8;color:#b9c9bf}a{display:inline-block;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:520px;overflow:auto;border-radius:9px}
+</style></head><body><main><h1>幕布、室内和室外数据对比</h1>
+<p class="note">这是同一 MuJoCo 场景生成的离线数据域模拟，不是真实户外采集。三组数据使用相同随机种子、相同球位和相同任务，变化仅来自图像条件。</p>
+<a href="capture_domain_comparison.json" target="_blank">查看 JSON 输出</a>
+<h2>输入图像与结果</h2><img src="capture_domain_comparison.png?v=2026-08-11T21:38:06+08:00">
+<h2>量化对比</h2><table><tr><th>数据域</th><th>目标像素</th><th>检测误差/cm</th><th>候选通过</th><th>最佳评分</th><th>放置误差/cm</th><th>结果</th></tr><tr><td>幕布</td><td>22</td><td>0.222</td><td>9/75</td><td>0.896753</td><td>0.581</td><td>成功</td></tr><tr><td>室内</td><td>20</td><td>0.263</td><td>9/75</td><td>0.869959</td><td>0.72</td><td>成功</td></tr><tr><td>室外</td><td>19</td><td>0.831</td><td>9/75</td><td>0.956115</td><td>2.254</td><td>成功</td></tr></table>
+<h2>结论</h2><p class="note">三种域共成功 3/3；平均检测误差 0.439 cm，平均放置误差 1.185 cm。检测最稳的是幕布，误差最大的是室外。室外域的高光、阴影和噪声用于检验颜色阈值的鲁棒性。</p>
+<h2>完整 JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T21:38:06+08:00&quot;,
+  &quot;数据来源&quot;: &quot;MuJoCo同场景RGB图像的离线域模拟&quot;,
+  &quot;公平性设置&quot;: &quot;相同随机种子、相同球位、相同目标球、相同候选与控制器&quot;,
+  &quot;任务&quot;: &quot;抓取绿色球并平稳放到红色球旁边&quot;,
+  &quot;数据域对比&quot;: [
+    {
+      &quot;数据域&quot;: &quot;幕布&quot;,
+      &quot;模拟条件&quot;: &quot;中性深色幕布、稳定曝光、低背景干扰&quot;,
+      &quot;检测成功&quot;: true,
+      &quot;检测&quot;: {
+        &quot;目标球&quot;: &quot;green&quot;,
+        &quot;目标像素数&quot;: 22,
+        &quot;参考像素数&quot;: 17,
+        &quot;目标定位误差_厘米&quot;: 0.222,
+        &quot;参考定位误差_厘米&quot;: 0.405,
+        &quot;目标估计位置_米&quot;: [
+          0.05943,
+          -0.021626,
+          0.818
+        ],
+        &quot;目标真值_米_仅评分&quot;: [
+          0.057949,
+          -0.01997,
+          0.828
+        ]
+      },
+      &quot;候选与过滤&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;规划&quot;: {
+        &quot;选中候选ID&quot;: 38,
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.896753,
+        &quot;路径&quot;: [
+          {
+            &quot;阶段&quot;: &quot;预抓取&quot;,
+            &quot;位置_米&quot;: [
+              0.05943,
+              -0.021626,
+              0.918
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抓取&quot;,
+            &quot;位置_米&quot;: [
+              0.05943,
+              -0.021626,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抬升&quot;,
+            &quot;位置_米&quot;: [
+              0.05943,
+              -0.021626,
+              0.982
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;运输&quot;,
+            &quot;位置_米&quot;: [
+              0.014291,
+              0.064216,
+              1.058
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;落桌&quot;,
+            &quot;位置_米&quot;: [
+              0.014291,
+              0.064216,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;松手&quot;,
+            &quot;位置_米&quot;: [
+              0.014291,
+              0.064216,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;退回&quot;,
+            &quot;位置_米&quot;: [
+              0.014291,
+              0.064216,
+              0.938
+            ]
+          }
+        ]
+      },
+      &quot;结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 185,
+        &quot;目标误差_厘米&quot;: 0.581,
+        &quot;目标移动_厘米&quot;: 9.225,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          0.0201,
+          0.064159,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          -0.075953,
+          0.060173,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 16
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 30
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 46
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 64
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 77
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 101
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 151
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 169
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 184
+          }
+        ]
+      }
+    },
+    {
+      &quot;数据域&quot;: &quot;室内&quot;,
+      &quot;模拟条件&quot;: &quot;暖色照明、轻微亮度变化与传感器噪声&quot;,
+      &quot;检测成功&quot;: true,
+      &quot;检测&quot;: {
+        &quot;目标球&quot;: &quot;green&quot;,
+        &quot;目标像素数&quot;: 20,
+        &quot;参考像素数&quot;: 32,
+        &quot;目标定位误差_厘米&quot;: 0.263,
+        &quot;参考定位误差_厘米&quot;: 0.224,
+        &quot;目标估计位置_米&quot;: [
+          0.030893,
+          -0.084383,
+          0.818
+        ],
+        &quot;目标真值_米_仅评分&quot;: [
+          0.029281,
+          -0.08231,
+          0.828
+        ]
+      },
+      &quot;候选与过滤&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;规划&quot;: {
+        &quot;选中候选ID&quot;: 38,
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.869959,
+        &quot;路径&quot;: [
+          {
+            &quot;阶段&quot;: &quot;预抓取&quot;,
+            &quot;位置_米&quot;: [
+              0.030893,
+              -0.084383,
+              0.918
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抓取&quot;,
+            &quot;位置_米&quot;: [
+              0.030893,
+              -0.084383,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抬升&quot;,
+            &quot;位置_米&quot;: [
+              0.030893,
+              -0.084383,
+              0.982
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;运输&quot;,
+            &quot;位置_米&quot;: [
+              0.007523,
+              0.045991,
+              1.058
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;落桌&quot;,
+            &quot;位置_米&quot;: [
+              0.007523,
+              0.045991,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;松手&quot;,
+            &quot;位置_米&quot;: [
+              0.007523,
+              0.045991,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;退回&quot;,
+            &quot;位置_米&quot;: [
+              0.007523,
+              0.045991,
+              0.938
+            ]
+          }
+        ]
+      },
+      &quot;结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 185,
+        &quot;目标误差_厘米&quot;: 0.72,
+        &quot;目标移动_厘米&quot;: 12.902,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          0.014725,
+          0.04589,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          0.097754,
+          0.043759,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 13
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 27
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 43
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 61
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 76
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 101
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 151
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 169
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 184
+          }
+        ]
+      }
+    },
+    {
+      &quot;数据域&quot;: &quot;室外&quot;,
+      &quot;模拟条件&quot;: &quot;强光渐变、局部高光、阴影与较强噪声&quot;,
+      &quot;检测成功&quot;: true,
+      &quot;检测&quot;: {
+        &quot;目标球&quot;: &quot;green&quot;,
+        &quot;目标像素数&quot;: 19,
+        &quot;参考像素数&quot;: 20,
+        &quot;目标定位误差_厘米&quot;: 0.831,
+        &quot;参考定位误差_厘米&quot;: 0.773,
+        &quot;目标估计位置_米&quot;: [
+          -0.075709,
+          0.098502,
+          0.818
+        ],
+        &quot;目标真值_米_仅评分&quot;: [
+          -0.067403,
+          0.098553,
+          0.828
+        ]
+      },
+      &quot;候选与过滤&quot;: {
+        &quot;生成&quot;: 75,
+        &quot;通过&quot;: 9,
+        &quot;拒绝&quot;: 66,
+        &quot;拒绝原因计数&quot;: {
+          &quot;夹爪宽度小于球直径安全余量&quot;: 25,
+          &quot;抓取中心偏离球心过大&quot;: 48,
+          &quot;超过Panda夹爪最大宽度&quot;: 25
+        }
+      },
+      &quot;规划&quot;: {
+        &quot;选中候选ID&quot;: 38,
+        &quot;夹爪宽度_毫米&quot;: 42.0,
+        &quot;综合评分&quot;: 0.956115,
+        &quot;路径&quot;: [
+          {
+            &quot;阶段&quot;: &quot;预抓取&quot;,
+            &quot;位置_米&quot;: [
+              -0.075709,
+              0.098502,
+              0.918
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抓取&quot;,
+            &quot;位置_米&quot;: [
+              -0.075709,
+              0.098502,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;抬升&quot;,
+            &quot;位置_米&quot;: [
+              -0.075709,
+              0.098502,
+              0.982
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;运输&quot;,
+            &quot;位置_米&quot;: [
+              -0.006575,
+              -0.102272,
+              1.058
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;落桌&quot;,
+            &quot;位置_米&quot;: [
+              -0.006575,
+              -0.102272,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;松手&quot;,
+            &quot;位置_米&quot;: [
+              -0.006575,
+              -0.102272,
+              0.822
+            ]
+          },
+          {
+            &quot;阶段&quot;: &quot;退回&quot;,
+            &quot;位置_米&quot;: [
+              -0.006575,
+              -0.102272,
+              0.938
+            ]
+          }
+        ]
+      },
+      &quot;结果&quot;: {
+        &quot;成功&quot;: true,
+        &quot;结束阶段&quot;: &quot;done&quot;,
+        &quot;控制步数&quot;: 199,
+        &quot;目标误差_厘米&quot;: 2.254,
+        &quot;目标移动_厘米&quot;: 22.393,
+        &quot;参考球移动_厘米&quot;: 0.0,
+        &quot;目标最终位置_米&quot;: [
+          0.014677,
+          -0.109793,
+          0.817633
+        ],
+        &quot;参考球最终位置_米&quot;: [
+          -0.091861,
+          -0.096145,
+          0.817633
+        ],
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;开始控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;开始控制步&quot;: 12
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;开始控制步&quot;: 34
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;开始控制步&quot;: 50
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;开始控制步&quot;: 68
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;开始控制步&quot;: 89
+          },
+          {
+            &quot;阶段&quot;: &quot;settle&quot;,
+            &quot;开始控制步&quot;: 115
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;开始控制步&quot;: 165
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;开始控制步&quot;: 183
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;开始控制步&quot;: 198
+          }
+        ]
+      }
+    }
+  ],
+  &quot;汇总&quot;: {
+    &quot;数据域数&quot;: 3,
+    &quot;成功数&quot;: 3,
+    &quot;成功率_百分比&quot;: 100.0,
+    &quot;平均检测误差_厘米&quot;: 0.439,
+    &quot;平均放置误差_厘米&quot;: 1.185
+  },
+  &quot;结论&quot;: &quot;三种域共成功 3/3；平均检测误差 0.439 cm，平均放置误差 1.185 cm。检测最稳的是幕布，误差最大的是室外。室外域的高光、阴影和噪声用于检验颜色阈值的鲁棒性。&quot;
+}</pre>
+</main></body></html>

@@ -1,0 +1,563 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>机械臂完整任务状态机与行为树</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1820px;margin:auto;padding:24px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:9px;border:1px solid #28543d;line-height:1.5}.note{line-height:1.8;color:#bdcdc3}.warn{color:#ffd166}a{display:inline-block;margin-right:10px;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:520px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>用状态机与行为树描述完整抓取任务</h1><p class="note">任务：识别目标球，生成并过滤候选，规划无碰撞路径，抓取、运输、平稳放桌，复核结果；失败时进行有限次数恢复或安全停止。</p><p class="note warn">“夹持确认、滑落监控、统一恢复次数和安全停止”是建议增强；现有代码已实现的状态在表中单独标注。</p><a href="complete_task_state_machine.json" target="_blank">JSON</a><a href="complete_task_state_transitions.csv">状态转换CSV</a>
+<h2>状态机总览</h2><img src="complete_task_state_machine.png?v=2026-08-11T22:09:48+08:00"><h2>状态定义</h2><table><tr><th>状态</th><th>中文</th><th>层级</th><th>实现</th><th>动作</th><th>成功条件</th><th>失败转移</th></tr><tr><td>INIT</td><td>初始化/自检</td><td>监督</td><td>建议增强</td><td>检查相机、点云/深度、机械臂、夹爪、TF与急停</td><td>所有关键设备在线</td><td>SAFE_STOP</td></tr><tr><td>DETECT</td><td>目标检测</td><td>监督</td><td>已实现</td><td>RGB检测红球和绿球并反投影到桌面</td><td>目标与参考物均检测到</td><td>REOBSERVE</td></tr><tr><td>CANDIDATE</td><td>候选生成</td><td>监督</td><td>已实现</td><td>生成5×5位置偏移×3种夹爪宽度，共75个候选</td><td>候选数>0</td><td>ABORT</td></tr><tr><td>FILTER</td><td>安全过滤</td><td>监督</td><td>已实现</td><td>检查夹爪宽度、中心偏差、工作区、净空与可达性</td><td>至少1个候选通过</td><td>REPLAN</td></tr><tr><td>PLAN</td><td>评分与规划</td><td>监督</td><td>已实现</td><td>按居中、净空、运动代价和视觉置信度评分并生成航点</td><td>路径无碰撞且候选有效</td><td>REPLAN</td></tr><tr><td>APPROACH</td><td>到达预抓取位</td><td>执行</td><td>已实现</td><td>夹爪张开，移动到目标上方</td><td>末端误差<1.2 cm</td><td>SAFE_STOP</td></tr><tr><td>DESCEND</td><td>下探</td><td>执行</td><td>已实现</td><td>垂直下降到球上方4 mm</td><td>末端误差<0.8 cm</td><td>SAFE_STOP</td></tr><tr><td>CLOSE</td><td>夹爪闭合</td><td>执行</td><td>已实现</td><td>保持位置并闭合16个控制步</td><td>闭合阶段完成</td><td>REGRASP</td></tr><tr><td>VERIFY_GRASP</td><td>夹持确认</td><td>监督</td><td>建议增强</td><td>融合夹爪宽度/电流、目标随动与在手视觉</td><td>物体已被夹住</td><td>REGRASP</td></tr><tr><td>LIFT</td><td>抬升</td><td>执行</td><td>已实现</td><td>垂直抬升16 cm</td><td>到达抬升高度</td><td>SAFE_LOWER</td></tr><tr><td>VERIFY_HOLD</td><td>滑落监控</td><td>监督</td><td>建议增强</td><td>持续检查夹爪状态与物体相对位姿</td><td>夹持稳定</td><td>SAFE_LOWER</td></tr><tr><td>TRANSPORT</td><td>运输</td><td>执行</td><td>已实现</td><td>在桌面上方24 cm移动到放置点</td><td>运输航点误差<1.5 cm</td><td>SAFE_LOWER</td></tr><tr><td>LOWER</td><td>落桌</td><td>执行</td><td>已实现</td><td>下降至桌面接触高度4 mm</td><td>放置航点误差<1.2 cm</td><td>SAFE_STOP</td></tr><tr><td>SETTLE</td><td>稳定等待</td><td>执行</td><td>已实现</td><td>保持夹持50个控制步，等待球稳定接触桌面</td><td>等待完成</td><td>SAFE_STOP</td></tr><tr><td>OPEN</td><td>松手</td><td>执行</td><td>已实现</td><td>开爪18个控制步</td><td>松手完成</td><td>SAFE_STOP</td></tr><tr><td>VERIFY_RESULT</td><td>结果复核</td><td>监督</td><td>离线已实现/在线建议增强</td><td>检查目标是否落桌、目标误差、参考物移动和夹空/滑落</td><td>误差<3.5 cm且目标移动>4 cm</td><td>REGRASP或ABORT</td></tr><tr><td>RETREAT</td><td>安全退回</td><td>执行</td><td>已实现</td><td>张开夹爪并上升12 cm</td><td>退回航点误差<1.5 cm</td><td>SAFE_STOP</td></tr><tr><td>DONE</td><td>完成</td><td>终止</td><td>已实现</td><td>保存图像、视频、日志和JSON结果</td><td>证据落盘</td><td>记录存储异常</td></tr><tr><td>REOBSERVE</td><td>重新观测</td><td>恢复</td><td>建议增强</td><td>调整曝光/视角并重新检测，最多3次</td><td>检测恢复</td><td>ABORT</td></tr><tr><td>REPLAN</td><td>重新规划</td><td>恢复</td><td>部分实现</td><td>更换候选、提高运输高度或加入绕障点，最多2次</td><td>得到安全路径</td><td>ABORT</td></tr><tr><td>REGRASP</td><td>重新抓取</td><td>恢复</td><td>建议增强</td><td>开爪退回、重新检测并重试1次</td><td>夹持确认通过</td><td>ABORT</td></tr><tr><td>SAFE_LOWER</td><td>安全降低</td><td>恢复</td><td>建议增强</td><td>停止水平运输并降低末端到安全高度</td><td>物体/末端进入安全状态</td><td>SAFE_STOP</td></tr><tr><td>SAFE_STOP</td><td>安全停止</td><td>终止</td><td>建议增强</td><td>停止运动、保持或安全释放并记录异常</td><td>速度归零</td><td>人工急停</td></tr><tr><td>ABORT</td><td>任务失败</td><td>终止</td><td>建议增强</td><td>记录失败类型、证据和最后状态</td><td>失败证据落盘</td><td>人工处理</td></tr></table>
+<h2>转换与守卫条件</h2><table><tr><th>来源</th><th>目标</th><th>条件</th></tr><tr><td>INIT</td><td>DETECT</td><td>自检通过</td></tr><tr><td>DETECT</td><td>CANDIDATE</td><td>目标和参考物检测成功</td></tr><tr><td>DETECT</td><td>REOBSERVE</td><td>分类失败/深度无效</td></tr><tr><td>REOBSERVE</td><td>DETECT</td><td>重拍且未超过3次</td></tr><tr><td>REOBSERVE</td><td>ABORT</td><td>重试耗尽</td></tr><tr><td>CANDIDATE</td><td>FILTER</td><td>生成75个候选</td></tr><tr><td>FILTER</td><td>PLAN</td><td>至少一个候选通过</td></tr><tr><td>FILTER</td><td>REPLAN</td><td>不可达/候选全部拒绝</td></tr><tr><td>PLAN</td><td>REPLAN</td><td>碰撞或路径无效</td></tr><tr><td>REPLAN</td><td>PLAN</td><td>替代候选/绕障路径有效</td></tr><tr><td>PLAN</td><td>APPROACH</td><td>选择最佳候选</td></tr><tr><td>APPROACH</td><td>DESCEND</td><td>预抓取位到达</td></tr><tr><td>DESCEND</td><td>CLOSE</td><td>抓取位到达</td></tr><tr><td>CLOSE</td><td>VERIFY_GRASP</td><td>闭合完成</td></tr><tr><td>VERIFY_GRASP</td><td>LIFT</td><td>确认夹住</td></tr><tr><td>VERIFY_GRASP</td><td>REGRASP</td><td>夹空</td></tr><tr><td>REGRASP</td><td>DETECT</td><td>退回并重新观测</td></tr><tr><td>LIFT</td><td>VERIFY_HOLD</td><td>达到抬升高度</td></tr><tr><td>VERIFY_HOLD</td><td>TRANSPORT</td><td>夹持稳定</td></tr><tr><td>VERIFY_HOLD</td><td>SAFE_LOWER</td><td>检测到滑落</td></tr><tr><td>TRANSPORT</td><td>LOWER</td><td>到达目标上方</td></tr><tr><td>TRANSPORT</td><td>SAFE_LOWER</td><td>途中滑落/新障碍</td></tr><tr><td>LOWER</td><td>SETTLE</td><td>接触桌面</td></tr><tr><td>SETTLE</td><td>OPEN</td><td>稳定等待完成</td></tr><tr><td>OPEN</td><td>VERIFY_RESULT</td><td>开爪完成</td></tr><tr><td>VERIFY_RESULT</td><td>RETREAT</td><td>放置成功</td></tr><tr><td>VERIFY_RESULT</td><td>REGRASP</td><td>允许重试且失败可恢复</td></tr><tr><td>VERIFY_RESULT</td><td>ABORT</td><td>重试耗尽/不可恢复</td></tr><tr><td>RETREAT</td><td>DONE</td><td>安全退回并保存结果</td></tr><tr><td>SAFE_LOWER</td><td>SAFE_STOP</td><td>进入安全高度</td></tr></table><h2>已有MuJoCo成功轨迹</h2><p class="note">试验1，目标green，共193控制步，最终误差0.211 cm。</p><table><tr><th>真实阶段</th><th>开始控制步</th></tr><tr><td>approach</td><td>0</td></tr><tr><td>descend</td><td>20</td></tr><tr><td>close</td><td>35</td></tr><tr><td>lift</td><td>51</td></tr><tr><td>transport</td><td>70</td></tr><tr><td>lower</td><td>84</td></tr><tr><td>settle</td><td>109</td></tr><tr><td>open</td><td>159</td></tr><tr><td>retreat</td><td>177</td></tr><tr><td>done</td><td>192</td></tr></table>
+<h2>行为树结构</h2><pre>{
+  &quot;根节点&quot;: &quot;Fallback&quot;,
+  &quot;子节点&quot;: [
+    {
+      &quot;Sequence_正常任务&quot;: [
+        &quot;系统自检&quot;,
+        {
+          &quot;Retry3_检测&quot;: [
+            &quot;检测目标&quot;,
+            &quot;深度/平面有效&quot;
+          ]
+        },
+        &quot;生成候选&quot;,
+        {
+          &quot;Fallback_得到安全计划&quot;: [
+            &quot;过滤并规划&quot;,
+            &quot;更换候选/绕障重规划&quot;
+          ]
+        },
+        &quot;接近&quot;,
+        &quot;下探&quot;,
+        &quot;闭合&quot;,
+        {
+          &quot;Fallback_夹持确认&quot;: [
+            &quot;确认抓住&quot;,
+            &quot;重新抓取一次&quot;
+          ]
+        },
+        &quot;抬升&quot;,
+        {
+          &quot;Monitor_夹持稳定&quot;: &quot;若滑落则安全降低&quot;
+        },
+        &quot;运输&quot;,
+        &quot;落桌&quot;,
+        &quot;稳定等待&quot;,
+        &quot;松手&quot;,
+        &quot;结果复核&quot;,
+        &quot;退回&quot;,
+        &quot;保存结果&quot;
+      ]
+    },
+    {
+      &quot;Sequence_故障收尾&quot;: [
+        &quot;停止运动&quot;,
+        &quot;记录失败类型和证据&quot;,
+        &quot;通知人工&quot;
+      ]
+    }
+  ]
+}</pre><h2>完整JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T22:09:48+08:00&quot;,
+  &quot;任务&quot;: &quot;目标检测→候选→过滤→规划→抓取→运输→平稳放桌→结果复核&quot;,
+  &quot;设计原则&quot;: [
+    &quot;分层状态机&quot;,
+    &quot;守卫条件明确&quot;,
+    &quot;恢复次数有限&quot;,
+    &quot;失败证据落盘&quot;,
+    &quot;不可恢复时安全停止&quot;
+  ],
+  &quot;状态&quot;: [
+    {
+      &quot;状态&quot;: &quot;INIT&quot;,
+      &quot;中文&quot;: &quot;初始化/自检&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;检查相机、点云/深度、机械臂、夹爪、TF与急停&quot;,
+      &quot;成功条件&quot;: &quot;所有关键设备在线&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;DETECT&quot;,
+      &quot;中文&quot;: &quot;目标检测&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;RGB检测红球和绿球并反投影到桌面&quot;,
+      &quot;成功条件&quot;: &quot;目标与参考物均检测到&quot;,
+      &quot;超时或失败&quot;: &quot;REOBSERVE&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;CANDIDATE&quot;,
+      &quot;中文&quot;: &quot;候选生成&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;生成5×5位置偏移×3种夹爪宽度，共75个候选&quot;,
+      &quot;成功条件&quot;: &quot;候选数&gt;0&quot;,
+      &quot;超时或失败&quot;: &quot;ABORT&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;FILTER&quot;,
+      &quot;中文&quot;: &quot;安全过滤&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;检查夹爪宽度、中心偏差、工作区、净空与可达性&quot;,
+      &quot;成功条件&quot;: &quot;至少1个候选通过&quot;,
+      &quot;超时或失败&quot;: &quot;REPLAN&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;PLAN&quot;,
+      &quot;中文&quot;: &quot;评分与规划&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;按居中、净空、运动代价和视觉置信度评分并生成航点&quot;,
+      &quot;成功条件&quot;: &quot;路径无碰撞且候选有效&quot;,
+      &quot;超时或失败&quot;: &quot;REPLAN&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;APPROACH&quot;,
+      &quot;中文&quot;: &quot;到达预抓取位&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;夹爪张开，移动到目标上方&quot;,
+      &quot;成功条件&quot;: &quot;末端误差&lt;1.2 cm&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;DESCEND&quot;,
+      &quot;中文&quot;: &quot;下探&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;垂直下降到球上方4 mm&quot;,
+      &quot;成功条件&quot;: &quot;末端误差&lt;0.8 cm&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;CLOSE&quot;,
+      &quot;中文&quot;: &quot;夹爪闭合&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;保持位置并闭合16个控制步&quot;,
+      &quot;成功条件&quot;: &quot;闭合阶段完成&quot;,
+      &quot;超时或失败&quot;: &quot;REGRASP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;VERIFY_GRASP&quot;,
+      &quot;中文&quot;: &quot;夹持确认&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;融合夹爪宽度/电流、目标随动与在手视觉&quot;,
+      &quot;成功条件&quot;: &quot;物体已被夹住&quot;,
+      &quot;超时或失败&quot;: &quot;REGRASP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;LIFT&quot;,
+      &quot;中文&quot;: &quot;抬升&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;垂直抬升16 cm&quot;,
+      &quot;成功条件&quot;: &quot;到达抬升高度&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_LOWER&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;VERIFY_HOLD&quot;,
+      &quot;中文&quot;: &quot;滑落监控&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;持续检查夹爪状态与物体相对位姿&quot;,
+      &quot;成功条件&quot;: &quot;夹持稳定&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_LOWER&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;TRANSPORT&quot;,
+      &quot;中文&quot;: &quot;运输&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;在桌面上方24 cm移动到放置点&quot;,
+      &quot;成功条件&quot;: &quot;运输航点误差&lt;1.5 cm&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_LOWER&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;LOWER&quot;,
+      &quot;中文&quot;: &quot;落桌&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;下降至桌面接触高度4 mm&quot;,
+      &quot;成功条件&quot;: &quot;放置航点误差&lt;1.2 cm&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;SETTLE&quot;,
+      &quot;中文&quot;: &quot;稳定等待&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;保持夹持50个控制步，等待球稳定接触桌面&quot;,
+      &quot;成功条件&quot;: &quot;等待完成&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;OPEN&quot;,
+      &quot;中文&quot;: &quot;松手&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;开爪18个控制步&quot;,
+      &quot;成功条件&quot;: &quot;松手完成&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;VERIFY_RESULT&quot;,
+      &quot;中文&quot;: &quot;结果复核&quot;,
+      &quot;层级&quot;: &quot;监督&quot;,
+      &quot;实现情况&quot;: &quot;离线已实现/在线建议增强&quot;,
+      &quot;进入动作&quot;: &quot;检查目标是否落桌、目标误差、参考物移动和夹空/滑落&quot;,
+      &quot;成功条件&quot;: &quot;误差&lt;3.5 cm且目标移动&gt;4 cm&quot;,
+      &quot;超时或失败&quot;: &quot;REGRASP或ABORT&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;RETREAT&quot;,
+      &quot;中文&quot;: &quot;安全退回&quot;,
+      &quot;层级&quot;: &quot;执行&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;张开夹爪并上升12 cm&quot;,
+      &quot;成功条件&quot;: &quot;退回航点误差&lt;1.5 cm&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;DONE&quot;,
+      &quot;中文&quot;: &quot;完成&quot;,
+      &quot;层级&quot;: &quot;终止&quot;,
+      &quot;实现情况&quot;: &quot;已实现&quot;,
+      &quot;进入动作&quot;: &quot;保存图像、视频、日志和JSON结果&quot;,
+      &quot;成功条件&quot;: &quot;证据落盘&quot;,
+      &quot;超时或失败&quot;: &quot;记录存储异常&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;REOBSERVE&quot;,
+      &quot;中文&quot;: &quot;重新观测&quot;,
+      &quot;层级&quot;: &quot;恢复&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;调整曝光/视角并重新检测，最多3次&quot;,
+      &quot;成功条件&quot;: &quot;检测恢复&quot;,
+      &quot;超时或失败&quot;: &quot;ABORT&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;REPLAN&quot;,
+      &quot;中文&quot;: &quot;重新规划&quot;,
+      &quot;层级&quot;: &quot;恢复&quot;,
+      &quot;实现情况&quot;: &quot;部分实现&quot;,
+      &quot;进入动作&quot;: &quot;更换候选、提高运输高度或加入绕障点，最多2次&quot;,
+      &quot;成功条件&quot;: &quot;得到安全路径&quot;,
+      &quot;超时或失败&quot;: &quot;ABORT&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;REGRASP&quot;,
+      &quot;中文&quot;: &quot;重新抓取&quot;,
+      &quot;层级&quot;: &quot;恢复&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;开爪退回、重新检测并重试1次&quot;,
+      &quot;成功条件&quot;: &quot;夹持确认通过&quot;,
+      &quot;超时或失败&quot;: &quot;ABORT&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;SAFE_LOWER&quot;,
+      &quot;中文&quot;: &quot;安全降低&quot;,
+      &quot;层级&quot;: &quot;恢复&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;停止水平运输并降低末端到安全高度&quot;,
+      &quot;成功条件&quot;: &quot;物体/末端进入安全状态&quot;,
+      &quot;超时或失败&quot;: &quot;SAFE_STOP&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;SAFE_STOP&quot;,
+      &quot;中文&quot;: &quot;安全停止&quot;,
+      &quot;层级&quot;: &quot;终止&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;停止运动、保持或安全释放并记录异常&quot;,
+      &quot;成功条件&quot;: &quot;速度归零&quot;,
+      &quot;超时或失败&quot;: &quot;人工急停&quot;
+    },
+    {
+      &quot;状态&quot;: &quot;ABORT&quot;,
+      &quot;中文&quot;: &quot;任务失败&quot;,
+      &quot;层级&quot;: &quot;终止&quot;,
+      &quot;实现情况&quot;: &quot;建议增强&quot;,
+      &quot;进入动作&quot;: &quot;记录失败类型、证据和最后状态&quot;,
+      &quot;成功条件&quot;: &quot;失败证据落盘&quot;,
+      &quot;超时或失败&quot;: &quot;人工处理&quot;
+    }
+  ],
+  &quot;转换&quot;: [
+    {
+      &quot;来源&quot;: &quot;INIT&quot;,
+      &quot;目标&quot;: &quot;DETECT&quot;,
+      &quot;条件&quot;: &quot;自检通过&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;DETECT&quot;,
+      &quot;目标&quot;: &quot;CANDIDATE&quot;,
+      &quot;条件&quot;: &quot;目标和参考物检测成功&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;DETECT&quot;,
+      &quot;目标&quot;: &quot;REOBSERVE&quot;,
+      &quot;条件&quot;: &quot;分类失败/深度无效&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;REOBSERVE&quot;,
+      &quot;目标&quot;: &quot;DETECT&quot;,
+      &quot;条件&quot;: &quot;重拍且未超过3次&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;REOBSERVE&quot;,
+      &quot;目标&quot;: &quot;ABORT&quot;,
+      &quot;条件&quot;: &quot;重试耗尽&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;CANDIDATE&quot;,
+      &quot;目标&quot;: &quot;FILTER&quot;,
+      &quot;条件&quot;: &quot;生成75个候选&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;FILTER&quot;,
+      &quot;目标&quot;: &quot;PLAN&quot;,
+      &quot;条件&quot;: &quot;至少一个候选通过&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;FILTER&quot;,
+      &quot;目标&quot;: &quot;REPLAN&quot;,
+      &quot;条件&quot;: &quot;不可达/候选全部拒绝&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;PLAN&quot;,
+      &quot;目标&quot;: &quot;REPLAN&quot;,
+      &quot;条件&quot;: &quot;碰撞或路径无效&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;REPLAN&quot;,
+      &quot;目标&quot;: &quot;PLAN&quot;,
+      &quot;条件&quot;: &quot;替代候选/绕障路径有效&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;PLAN&quot;,
+      &quot;目标&quot;: &quot;APPROACH&quot;,
+      &quot;条件&quot;: &quot;选择最佳候选&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;APPROACH&quot;,
+      &quot;目标&quot;: &quot;DESCEND&quot;,
+      &quot;条件&quot;: &quot;预抓取位到达&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;DESCEND&quot;,
+      &quot;目标&quot;: &quot;CLOSE&quot;,
+      &quot;条件&quot;: &quot;抓取位到达&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;CLOSE&quot;,
+      &quot;目标&quot;: &quot;VERIFY_GRASP&quot;,
+      &quot;条件&quot;: &quot;闭合完成&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_GRASP&quot;,
+      &quot;目标&quot;: &quot;LIFT&quot;,
+      &quot;条件&quot;: &quot;确认夹住&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_GRASP&quot;,
+      &quot;目标&quot;: &quot;REGRASP&quot;,
+      &quot;条件&quot;: &quot;夹空&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;REGRASP&quot;,
+      &quot;目标&quot;: &quot;DETECT&quot;,
+      &quot;条件&quot;: &quot;退回并重新观测&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;LIFT&quot;,
+      &quot;目标&quot;: &quot;VERIFY_HOLD&quot;,
+      &quot;条件&quot;: &quot;达到抬升高度&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_HOLD&quot;,
+      &quot;目标&quot;: &quot;TRANSPORT&quot;,
+      &quot;条件&quot;: &quot;夹持稳定&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_HOLD&quot;,
+      &quot;目标&quot;: &quot;SAFE_LOWER&quot;,
+      &quot;条件&quot;: &quot;检测到滑落&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;TRANSPORT&quot;,
+      &quot;目标&quot;: &quot;LOWER&quot;,
+      &quot;条件&quot;: &quot;到达目标上方&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;TRANSPORT&quot;,
+      &quot;目标&quot;: &quot;SAFE_LOWER&quot;,
+      &quot;条件&quot;: &quot;途中滑落/新障碍&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;LOWER&quot;,
+      &quot;目标&quot;: &quot;SETTLE&quot;,
+      &quot;条件&quot;: &quot;接触桌面&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;SETTLE&quot;,
+      &quot;目标&quot;: &quot;OPEN&quot;,
+      &quot;条件&quot;: &quot;稳定等待完成&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;OPEN&quot;,
+      &quot;目标&quot;: &quot;VERIFY_RESULT&quot;,
+      &quot;条件&quot;: &quot;开爪完成&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_RESULT&quot;,
+      &quot;目标&quot;: &quot;RETREAT&quot;,
+      &quot;条件&quot;: &quot;放置成功&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_RESULT&quot;,
+      &quot;目标&quot;: &quot;REGRASP&quot;,
+      &quot;条件&quot;: &quot;允许重试且失败可恢复&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;VERIFY_RESULT&quot;,
+      &quot;目标&quot;: &quot;ABORT&quot;,
+      &quot;条件&quot;: &quot;重试耗尽/不可恢复&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;RETREAT&quot;,
+      &quot;目标&quot;: &quot;DONE&quot;,
+      &quot;条件&quot;: &quot;安全退回并保存结果&quot;
+    },
+    {
+      &quot;来源&quot;: &quot;SAFE_LOWER&quot;,
+      &quot;目标&quot;: &quot;SAFE_STOP&quot;,
+      &quot;条件&quot;: &quot;进入安全高度&quot;
+    }
+  ],
+  &quot;行为树&quot;: {
+    &quot;根节点&quot;: &quot;Fallback&quot;,
+    &quot;子节点&quot;: [
+      {
+        &quot;Sequence_正常任务&quot;: [
+          &quot;系统自检&quot;,
+          {
+            &quot;Retry3_检测&quot;: [
+              &quot;检测目标&quot;,
+              &quot;深度/平面有效&quot;
+            ]
+          },
+          &quot;生成候选&quot;,
+          {
+            &quot;Fallback_得到安全计划&quot;: [
+              &quot;过滤并规划&quot;,
+              &quot;更换候选/绕障重规划&quot;
+            ]
+          },
+          &quot;接近&quot;,
+          &quot;下探&quot;,
+          &quot;闭合&quot;,
+          {
+            &quot;Fallback_夹持确认&quot;: [
+              &quot;确认抓住&quot;,
+              &quot;重新抓取一次&quot;
+            ]
+          },
+          &quot;抬升&quot;,
+          {
+            &quot;Monitor_夹持稳定&quot;: &quot;若滑落则安全降低&quot;
+          },
+          &quot;运输&quot;,
+          &quot;落桌&quot;,
+          &quot;稳定等待&quot;,
+          &quot;松手&quot;,
+          &quot;结果复核&quot;,
+          &quot;退回&quot;,
+          &quot;保存结果&quot;
+        ]
+      },
+      {
+        &quot;Sequence_故障收尾&quot;: [
+          &quot;停止运动&quot;,
+          &quot;记录失败类型和证据&quot;,
+          &quot;通知人工&quot;
+        ]
+      }
+    ]
+  },
+  &quot;已有成功轨迹&quot;: {
+    &quot;试验编号&quot;: 1,
+    &quot;目标颜色&quot;: &quot;green&quot;,
+    &quot;执行结果&quot;: true,
+    &quot;控制步数&quot;: 193,
+    &quot;阶段轨迹&quot;: [
+      {
+        &quot;阶段&quot;: &quot;approach&quot;,
+        &quot;开始控制步&quot;: 0
+      },
+      {
+        &quot;阶段&quot;: &quot;descend&quot;,
+        &quot;开始控制步&quot;: 20
+      },
+      {
+        &quot;阶段&quot;: &quot;close&quot;,
+        &quot;开始控制步&quot;: 35
+      },
+      {
+        &quot;阶段&quot;: &quot;lift&quot;,
+        &quot;开始控制步&quot;: 51
+      },
+      {
+        &quot;阶段&quot;: &quot;transport&quot;,
+        &quot;开始控制步&quot;: 70
+      },
+      {
+        &quot;阶段&quot;: &quot;lower&quot;,
+        &quot;开始控制步&quot;: 84
+      },
+      {
+        &quot;阶段&quot;: &quot;settle&quot;,
+        &quot;开始控制步&quot;: 109
+      },
+      {
+        &quot;阶段&quot;: &quot;open&quot;,
+        &quot;开始控制步&quot;: 159
+      },
+      {
+        &quot;阶段&quot;: &quot;retreat&quot;,
+        &quot;开始控制步&quot;: 177
+      },
+      {
+        &quot;阶段&quot;: &quot;done&quot;,
+        &quot;开始控制步&quot;: 192
+      }
+    ],
+    &quot;目标误差_厘米&quot;: 0.211
+  },
+  &quot;实现边界&quot;: {
+    &quot;已实现&quot;: [
+      &quot;DETECT&quot;,
+      &quot;CANDIDATE&quot;,
+      &quot;FILTER&quot;,
+      &quot;PLAN&quot;,
+      &quot;APPROACH&quot;,
+      &quot;DESCEND&quot;,
+      &quot;CLOSE&quot;,
+      &quot;LIFT&quot;,
+      &quot;TRANSPORT&quot;,
+      &quot;LOWER&quot;,
+      &quot;SETTLE&quot;,
+      &quot;OPEN&quot;,
+      &quot;RETREAT&quot;,
+      &quot;DONE&quot;
+    ],
+    &quot;建议增强&quot;: [
+      &quot;INIT&quot;,
+      &quot;VERIFY_GRASP&quot;,
+      &quot;VERIFY_HOLD&quot;,
+      &quot;VERIFY_RESULT&quot;,
+      &quot;REOBSERVE&quot;,
+      &quot;REGRASP&quot;,
+      &quot;SAFE_LOWER&quot;,
+      &quot;SAFE_STOP&quot;,
+      &quot;ABORT&quot;
+    ]
+  }
+}</pre></main></body></html>

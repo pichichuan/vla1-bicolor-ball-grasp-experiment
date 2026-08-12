@@ -1,0 +1,133 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>机械臂失败与改进办法</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1800px;margin:auto;padding:24px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:10px;border:1px solid #28543d;text-align:left;line-height:1.6}.note{line-height:1.8;color:#bdcdc3}.warn{color:#ffd166}a{display:inline-block;margin-right:10px;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:500px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>至少5类失败和改进办法：本项目覆盖6类</h1><p class="note">分类识别失败、深度缺失、不可达、碰撞在执行前门控；夹空和滑落由MuJoCo执行监控与结果复核判定。</p><p class="note warn">验收指标为后续工程建议目标，不是本次实验已经取得的成绩。</p>
+<a href="failure_improvement_table.json" target="_blank">JSON</a><a href="failure_improvement_table.csv">CSV</a><h2>总表</h2><img src="failure_improvement_table.png?v=2026-08-11T22:02:48+08:00">
+<h2>详细对照</h2><table><tr><th>失败</th><th>实验证据</th><th>发现阶段</th><th>即时处置</th><th>工程改进</th><th>建议验收指标</th></tr><tr><td>分类识别失败</td><td>目标像素0，目标漏检</td><td>检测</td><td>停止抓取并请求重新观测，不沿用旧坐标</td><td>置信度门控、未知类拒识、颜色/光照域增强、时序投票</td><td>多环境目标召回率≥95%；错误类别触发抓取次数=0</td></tr><tr><td>深度缺失</td><td>有效深度比例0%</td><td>检测到三维反投影之间</td><td>冻结运动，短时等待下一帧；超时后安全退出</td><td>有效深度比例检查、时序补全、多视角；桌面任务回退固定平面Z</td><td>深度无效时误执行=0；恢复后位置误差≤1 cm</td></tr><tr><td>不可达</td><td>候选0/75</td><td>过滤</td><td>不下发轨迹，重新选择候选或移动机器人底座</td><td>工作空间预筛、IK可达性地图、多抓取姿态和基座重定位</td><td>不可达轨迹下发次数=0；可替代场景重规划成功率≥95%</td></tr><tr><td>碰撞</td><td>路径净空-4.5 cm</td><td>规划</td><td>执行前阻断，增加抬升高度或生成绕障航点</td><td>连续碰撞检测、障碍膨胀、扫掠体检查和在线重规划</td><td>碰撞次数=0；最小规划净空≥3.5 cm</td></tr><tr><td>夹空</td><td>球移动0.0 cm</td><td>结果复核</td><td>张开夹爪、退回预抓取位并重新检测后重试</td><td>融合夹爪宽度/电流、目标随动高度和视觉在手检测</td><td>夹空识别率≥95%；识别延迟≤0.5 s；最多重试1次</td></tr><tr><td>滑落</td><td>抬升19.116 cm后滑落</td><td>执行监控/结果复核</td><td>停止水平运输、降低末端并进入安全释放流程</td><td>夹持力闭环、降低加速度、监测夹爪宽度及物体相对位姿</td><td>滑落识别率≥95%；检测延迟≤0.3 s；物体跌落桌外=0</td></tr></table>
+<h2>完整JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T22:02:48+08:00&quot;,
+  &quot;覆盖失败类型数&quot;: 6,
+  &quot;数据来源&quot;: &quot;grasp_failure_classification.json中的六类已复现实验&quot;,
+  &quot;验收指标说明&quot;: &quot;均为建议目标，尚未通过批量实验证明&quot;,
+  &quot;失败与改进&quot;: [
+    {
+      &quot;失败类型&quot;: &quot;分类识别失败&quot;,
+      &quot;实验证据&quot;: {
+        &quot;目标检测到&quot;: false,
+        &quot;目标像素数&quot;: 0
+      },
+      &quot;诊断规则&quot;: &quot;目标类别检测为空，且任务明确要求green&quot;,
+      &quot;发现阶段&quot;: &quot;检测&quot;,
+      &quot;执行前安全阻断&quot;: true,
+      &quot;即时处置&quot;: &quot;停止抓取并请求重新观测，不沿用旧坐标&quot;,
+      &quot;工程改进&quot;: &quot;置信度门控、未知类拒识、颜色/光照域增强、时序投票&quot;,
+      &quot;建议验收指标&quot;: &quot;多环境目标召回率≥95%；错误类别触发抓取次数=0&quot;
+    },
+    {
+      &quot;失败类型&quot;: &quot;深度缺失&quot;,
+      &quot;实验证据&quot;: {
+        &quot;目标邻域有效深度比例&quot;: 0.0,
+        &quot;当前项目原生深度传感器&quot;: false
+      },
+      &quot;诊断规则&quot;: &quot;有效深度比例低于30%&quot;,
+      &quot;发现阶段&quot;: &quot;检测到三维反投影之间&quot;,
+      &quot;执行前安全阻断&quot;: true,
+      &quot;即时处置&quot;: &quot;冻结运动，短时等待下一帧；超时后安全退出&quot;,
+      &quot;工程改进&quot;: &quot;有效深度比例检查、时序补全、多视角；桌面任务回退固定平面Z&quot;,
+      &quot;建议验收指标&quot;: &quot;深度无效时误执行=0；恢复后位置误差≤1 cm&quot;
+    },
+    {
+      &quot;失败类型&quot;: &quot;不可达&quot;,
+      &quot;实验证据&quot;: {
+        &quot;生成候选&quot;: 75,
+        &quot;通过候选&quot;: 0
+      },
+      &quot;诊断规则&quot;: &quot;75个候选全部被工作区/可达性过滤&quot;,
+      &quot;发现阶段&quot;: &quot;过滤&quot;,
+      &quot;执行前安全阻断&quot;: true,
+      &quot;即时处置&quot;: &quot;不下发轨迹，重新选择候选或移动机器人底座&quot;,
+      &quot;工程改进&quot;: &quot;工作空间预筛、IK可达性地图、多抓取姿态和基座重定位&quot;,
+      &quot;建议验收指标&quot;: &quot;不可达轨迹下发次数=0；可替代场景重规划成功率≥95%&quot;
+    },
+    {
+      &quot;失败类型&quot;: &quot;碰撞&quot;,
+      &quot;实验证据&quot;: {
+        &quot;路径净空_厘米&quot;: -4.5,
+        &quot;要求安全余量_厘米&quot;: 3.5000000000000004
+      },
+      &quot;诊断规则&quot;: &quot;路径净空小于3.5 cm&quot;,
+      &quot;发现阶段&quot;: &quot;规划&quot;,
+      &quot;执行前安全阻断&quot;: true,
+      &quot;即时处置&quot;: &quot;执行前阻断，增加抬升高度或生成绕障航点&quot;,
+      &quot;工程改进&quot;: &quot;连续碰撞检测、障碍膨胀、扫掠体检查和在线重规划&quot;,
+      &quot;建议验收指标&quot;: &quot;碰撞次数=0；最小规划净空≥3.5 cm&quot;
+    },
+    {
+      &quot;失败类型&quot;: &quot;夹空&quot;,
+      &quot;实验证据&quot;: {
+        &quot;夹爪闭合阶段完成&quot;: true,
+        &quot;目标球移动_厘米&quot;: 0.0,
+        &quot;最终放置成功&quot;: false,
+        &quot;结束阶段&quot;: &quot;done&quot;
+      },
+      &quot;诊断规则&quot;: &quot;执行过close阶段，但目标球未明显移动/未随夹爪抬升&quot;,
+      &quot;发现阶段&quot;: &quot;结果复核&quot;,
+      &quot;执行前安全阻断&quot;: false,
+      &quot;即时处置&quot;: &quot;张开夹爪、退回预抓取位并重新检测后重试&quot;,
+      &quot;工程改进&quot;: &quot;融合夹爪宽度/电流、目标随动高度和视觉在手检测&quot;,
+      &quot;建议验收指标&quot;: &quot;夹空识别率≥95%；识别延迟≤0.5 s；最多重试1次&quot;
+    },
+    {
+      &quot;失败类型&quot;: &quot;滑落&quot;,
+      &quot;实验证据&quot;: {
+        &quot;运输阶段提前开爪&quot;: true,
+        &quot;目标最大抬升_厘米&quot;: 19.116,
+        &quot;最终已落桌&quot;: true,
+        &quot;最终目标误差_厘米&quot;: 5.461,
+        &quot;阶段轨迹&quot;: [
+          {
+            &quot;阶段&quot;: &quot;approach&quot;,
+            &quot;控制步&quot;: 0
+          },
+          {
+            &quot;阶段&quot;: &quot;descend&quot;,
+            &quot;控制步&quot;: 10
+          },
+          {
+            &quot;阶段&quot;: &quot;close&quot;,
+            &quot;控制步&quot;: 25
+          },
+          {
+            &quot;阶段&quot;: &quot;lift&quot;,
+            &quot;控制步&quot;: 41
+          },
+          {
+            &quot;阶段&quot;: &quot;transport&quot;,
+            &quot;控制步&quot;: 59
+          },
+          {
+            &quot;阶段&quot;: &quot;lower&quot;,
+            &quot;控制步&quot;: 75
+          },
+          {
+            &quot;阶段&quot;: &quot;open&quot;,
+            &quot;控制步&quot;: 100
+          },
+          {
+            &quot;阶段&quot;: &quot;retreat&quot;,
+            &quot;控制步&quot;: 118
+          },
+          {
+            &quot;阶段&quot;: &quot;done&quot;,
+            &quot;控制步&quot;: 133
+          }
+        ]
+      },
+      &quot;诊断规则&quot;: &quot;目标曾随夹爪抬升超过4 cm，运输阶段夹持状态丢失，随后目标落回桌面；最终误差只用于衡量严重程度&quot;,
+      &quot;发现阶段&quot;: &quot;执行监控/结果复核&quot;,
+      &quot;执行前安全阻断&quot;: false,
+      &quot;即时处置&quot;: &quot;停止水平运输、降低末端并进入安全释放流程&quot;,
+      &quot;工程改进&quot;: &quot;夹持力闭环、降低加速度、监测夹爪宽度及物体相对位姿&quot;,
+      &quot;建议验收指标&quot;: &quot;滑落识别率≥95%；检测延迟≤0.3 s；物体跌落桌外=0&quot;
+    }
+  ]
+}</pre></main></body></html>

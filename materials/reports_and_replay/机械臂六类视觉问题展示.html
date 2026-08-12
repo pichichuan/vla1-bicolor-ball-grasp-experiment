@@ -1,0 +1,103 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>机械臂六类视觉问题展示</title>
+<style>body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1540px;margin:auto;padding:26px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:10px;border:1px solid #28543d;text-align:center}.note{color:#b9c9bf;line-height:1.8}a{display:inline-block;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:520px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>强光、阴影、遮挡、尘土、反光和相机晃动</h1><p class="note">以下均为同一 MuJoCo RGB 场景的离线故障注入，用于演示视觉链路的失效模式，不代表真实现场采集。仿真真值只用于计算检测误差。</p>
+<a href="visual_failure_cases.json" target="_blank">查看 JSON 输出</a><h2>问题图像</h2><img src="visual_failure_cases.png?v=2026-08-11T21:42:06+08:00">
+<h2>检测与候选结果</h2><table><tr><th>问题</th><th>目标检测</th><th>目标像素</th><th>定位误差/cm</th><th>候选通过</th><th>可继续规划</th><th>建议措施</th></tr><tr><td>强光</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>自动曝光/HDR、遮光罩、偏振镜</td></tr><tr><td>阴影</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>主动补光、亮度归一化、阴影增强训练</td></tr><tr><td>遮挡</td><td>漏检</td><td>0</td><td>-</td><td>0/75</td><td>否</td><td>时序跟踪、多视角、遮挡恢复策略</td></tr><tr><td>尘土</td><td>检测到</td><td>16</td><td>0.482</td><td>9/75</td><td>是</td><td>镜头清洁/密封、质量监控、去噪</td></tr><tr><td>反光</td><td>检测到</td><td>19</td><td>7.183</td><td>9/75</td><td>是</td><td>偏振镜、深度融合、连通域约束</td></tr><tr><td>相机晃动</td><td>检测到</td><td>6</td><td>2.238</td><td>9/75</td><td>是</td><td>更短曝光、稳像、IMU时间同步</td></tr></table>
+<h2>结果解释</h2><p class="note">“可继续规划”只表示检测结果能够产生合规抓取候选，不等同于最终抓取必然成功。遮挡导致漏检时，管线会在检测阶段安全停止；反光和晃动即使仍能规划，也可能把错误位置传递到抓取执行阶段。</p>
+<h2>完整 JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T21:42:06+08:00&quot;,
+  &quot;数据来源&quot;: &quot;MuJoCo同一场景RGB图像的离线故障注入&quot;,
+  &quot;任务&quot;: &quot;绿球检测与抓取候选生成&quot;,
+  &quot;真值用途&quot;: &quot;仅用于客观计算定位误差，不参与检测与候选生成&quot;,
+  &quot;问题测试&quot;: [
+    {
+      &quot;问题&quot;: &quot;强光&quot;,
+      &quot;注入现象&quot;: &quot;大面积过曝与局部眩光&quot;,
+      &quot;主要风险&quot;: &quot;颜色饱和度下降、球边缘丢失&quot;,
+      &quot;建议措施&quot;: &quot;自动曝光/HDR、遮光罩、偏振镜&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;漏检&quot;,
+        &quot;目标像素数&quot;: 0,
+        &quot;定位误差_厘米&quot;: null,
+        &quot;候选通过&quot;: 0,
+        &quot;可继续规划&quot;: false
+      }
+    },
+    {
+      &quot;问题&quot;: &quot;阴影&quot;,
+      &quot;注入现象&quot;: &quot;目标区域亮度骤降&quot;,
+      &quot;主要风险&quot;: &quot;固定阈值漏检或像素不足&quot;,
+      &quot;建议措施&quot;: &quot;主动补光、亮度归一化、阴影增强训练&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;漏检&quot;,
+        &quot;目标像素数&quot;: 0,
+        &quot;定位误差_厘米&quot;: null,
+        &quot;候选通过&quot;: 0,
+        &quot;可继续规划&quot;: false
+      }
+    },
+    {
+      &quot;问题&quot;: &quot;遮挡&quot;,
+      &quot;注入现象&quot;: &quot;目标球被前景物遮住&quot;,
+      &quot;主要风险&quot;: &quot;中心估计偏移或完全漏检&quot;,
+      &quot;建议措施&quot;: &quot;时序跟踪、多视角、遮挡恢复策略&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;漏检&quot;,
+        &quot;目标像素数&quot;: 0,
+        &quot;定位误差_厘米&quot;: null,
+        &quot;候选通过&quot;: 0,
+        &quot;可继续规划&quot;: false
+      }
+    },
+    {
+      &quot;问题&quot;: &quot;尘土&quot;,
+      &quot;注入现象&quot;: &quot;镜头污点与随机颗粒&quot;,
+      &quot;主要风险&quot;: &quot;伪特征、局部对比度下降&quot;,
+      &quot;建议措施&quot;: &quot;镜头清洁/密封、质量监控、去噪&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;检测到&quot;,
+        &quot;目标像素数&quot;: 16,
+        &quot;参考像素数&quot;: 25,
+        &quot;定位误差_厘米&quot;: 0.482,
+        &quot;候选通过&quot;: 9,
+        &quot;可继续规划&quot;: true,
+        &quot;最佳候选评分&quot;: 0.894775
+      }
+    },
+    {
+      &quot;问题&quot;: &quot;反光&quot;,
+      &quot;注入现象&quot;: &quot;桌面高光与目标彩色鬼影&quot;,
+      &quot;主要风险&quot;: &quot;重复检测、质心被反射拉偏&quot;,
+      &quot;建议措施&quot;: &quot;偏振镜、深度融合、连通域约束&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;检测到&quot;,
+        &quot;目标像素数&quot;: 19,
+        &quot;参考像素数&quot;: 25,
+        &quot;定位误差_厘米&quot;: 7.183,
+        &quot;候选通过&quot;: 9,
+        &quot;可继续规划&quot;: true,
+        &quot;最佳候选评分&quot;: 0.955951
+      }
+    },
+    {
+      &quot;问题&quot;: &quot;相机晃动&quot;,
+      &quot;注入现象&quot;: &quot;运动模糊与画面位移&quot;,
+      &quot;主要风险&quot;: &quot;定位滞后、坐标投影误差&quot;,
+      &quot;建议措施&quot;: &quot;更短曝光、稳像、IMU时间同步&quot;,
+      &quot;检测与候选结果&quot;: {
+        &quot;目标检测&quot;: &quot;检测到&quot;,
+        &quot;目标像素数&quot;: 6,
+        &quot;参考像素数&quot;: 28,
+        &quot;定位误差_厘米&quot;: 2.238,
+        &quot;候选通过&quot;: 9,
+        &quot;可继续规划&quot;: true,
+        &quot;最佳候选评分&quot;: 0.853719
+      }
+    }
+  ],
+  &quot;汇总&quot;: {
+    &quot;问题数&quot;: 6,
+    &quot;阻断规划数&quot;: 3,
+    &quot;仍可规划数&quot;: 3
+  }
+}</pre></main></body></html>

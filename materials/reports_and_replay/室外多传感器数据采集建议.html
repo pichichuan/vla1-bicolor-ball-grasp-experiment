@@ -1,0 +1,222 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>室外数据采集建议</title><style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}main{max-width:1720px;margin:auto;padding:25px}h1,h2{color:#70eaa3}img{width:100%;border:1px solid #2c6547;border-radius:12px}table{width:100%;border-collapse:collapse;background:#0d1e16}th,td{padding:10px;border:1px solid #28543d;line-height:1.6}.note{line-height:1.8;color:#bdcdc3}.warn{color:#ffd166}a.button{display:inline-block;margin-right:10px;padding:10px 16px;background:#28a866;color:white;text-decoration:none;border-radius:8px}a{color:#70eaa3}pre{white-space:pre-wrap;background:#040906;padding:16px;max-height:500px;overflow:auto;border-radius:9px}</style></head>
+<body><main><h1>Thor + LiDAR + 相机IMU + 双RTK：室外数据采集建议</h1><p class="note">面向FAST-LIVO2建图定位项目。优先解决现有的时间同步门控、逆变器/显示屏干扰、标定复核和室外视觉退化问题。</p><p class="note warn">表中5 ms、±5%、0.1%、95%等是首轮调试建议目标，不是FAST-LIVO2官方硬性门槛；应在预实验后按设备规格和车速固化。</p>
+<a class="button" href="outdoor_data_collection_advice.json" target="_blank">JSON</a><a class="button" href="outdoor_data_collection_checklist.csv">检查表CSV</a><h2>现场总览</h2><img src="outdoor_data_collection_advice.png?v=2026-08-11T22:06:17+08:00">
+<h2>采集矩阵</h2><table><tr><th>维度</th><th>覆盖场景</th><th>建议覆盖</th><th>重点风险</th></tr><tr><td>光照</td><td>阴天/顺光/背光/树影交替/正午强光/黄昏</td><td>每类≥3段，每段5~10分钟</td><td>过曝、阴影、反光、曝光跳变</td></tr><tr><td>空间</td><td>开阔区/楼宇旁/树下/窄通道/重复纹理区</td><td>每类正反向各1次</td><td>GNSS遮挡、视觉退化、点云退化</td></tr><tr><td>运动</td><td>静止/低速直行/正常速度/连续转弯/启停</td><td>每类≥3次</td><td>运动模糊、IMU饱和、时间偏差</td></tr><tr><td>GNSS</td><td>RTK FIX/浮点/单点/短时拒止</td><td>记录状态切换前后30秒</td><td>跳变、错误初始化、评估基准失真</td></tr><tr><td>环境</td><td>干净/尘土/轻振动/温升后</td><td>开机、热机20分钟后各1组</td><td>镜头污染、外参变化、热降频</td></tr><tr><td>供电干扰</td><td>逆变器关/开；显示屏关/开；独立供电</td><td>固定路线A/B/A复测</td><td>屏幕干扰、丢帧、时间戳抖动</td></tr></table>
+<h2>现场检查表</h2><table><tr><th>项目</th><th>操作</th><th>级别</th></tr><tr><td>任务定义</td><td>先写清建图、定位、感知或导航目标；确定必须记录的话题和成功标准</td><td>必须</td></tr><tr><td>硬时间同步</td><td>优先相机触发+LiDAR/IMU硬同步+GNSS 1PPS；记录硬件时间戳与同步状态</td><td>必须</td></tr><tr><td>标定</td><td>保存相机内参、LiDAR-相机、LiDAR-IMU、相机-IMU外参及双RTK杆臂参数</td><td>必须</td></tr><tr><td>坐标系</td><td>检查map/odom/base_link/lidar/camera/imu/gnss的TF方向、单位和右手系</td><td>必须</td></tr><tr><td>供电隔离</td><td>传感器与逆变器/显示屏分支供电；检查共地、屏蔽、磁环与线束间距</td><td>必须</td></tr><tr><td>静态段</td><td>每条路线开始和结束各保留30~60秒静止数据</td><td>必须</td></tr><tr><td>话题体检</td><td>采集前检查频率、时间戳单调性、frame_id、QoS、丢包和诊断状态</td><td>必须</td></tr><tr><td>录包</td><td>记录原始点云、原始图像、camera_info、原始IMU、双RTK、TF、诊断和同步状态</td><td>必须</td></tr><tr><td>在线监控</td><td>监控磁盘写速、CPU/GPU负载、Thor温度/功耗/降频、网络丢包和剩余空间</td><td>必须</td></tr><tr><td>现场抽检</td><td>每段结束立即rosbag info并回放关键片段，确认图像、点云、IMU和RTK都存在</td><td>必须</td></tr><tr><td>元数据</td><td>记录天气、光照、温湿度、尘土、路线、速度、设备序列号/固件、异常事件</td><td>必须</td></tr><tr><td>备份</td><td>原始包只读保存，生成SHA-256；当天至少复制到第二块介质</td><td>必须</td></tr><tr><td>安全与隐私</td><td>双人作业、观察员、急停、隔离区；按场地规则处理人脸和车牌</td><td>必须</td></tr><tr><td>自动曝光锁定</td><td>对比自动曝光和锁曝光；转场明显时记录曝光参数</td><td>可选优化</td></tr><tr><td>彩色点云预览</td><td>现场生成短段彩色点云，快速暴露外参或同步方向错误</td><td>可选优化</td></tr></table>
+<h2>建议质量门槛</h2><table><tr><th>检查项</th><th>首轮建议门槛</th><th>失败处置</th></tr><tr><td>时间戳</td><td>严格单调；无回跳；相机-LiDAR偏差P95先以≤5 ms为调试目标</td><td>停止正式采集，检查PPS/触发线、驱动时间源和时区</td></tr><tr><td>话题频率</td><td>实测频率在配置值±5%内，长时间无断流</td><td>降低带宽/分辨率或修复网络与QoS</td></tr><tr><td>丢帧/丢包</td><td>正式数据目标<0.1%；关键同步帧不允许连续缺失</td><td>检查SSD写速、CPU负载、网卡和QoS覆盖</td></tr><tr><td>图像质量</td><td>目标区域不过曝、不严重模糊；抽样模糊率<5%</td><td>调整曝光、增益、遮光罩、稳固支架</td></tr><tr><td>点云质量</td><td>无整圈/整列缺失；近距离无大量自车反射；强度与距离分布稳定</td><td>清洁窗口、检查安装角度、网络和回波配置</td></tr><tr><td>RTK</td><td>开阔段FIX比例优先≥95%；记录状态、卫星数和协方差</td><td>检查天线视野、基站链路、杆臂和电磁干扰</td></tr><tr><td>FAST-LIVO2短段回放</td><td>无持续漂移、无明显重影；彩色点云边缘基本对齐</td><td>优先排查时间同步，其次外参、内参和图像曝光</td></tr><tr><td>Thor稳定性</td><td>全程无热降频、掉电或OOM；磁盘余量≥预计数据量2倍</td><td>改善散热、固定功耗模式、减少并行任务或提高存储带宽</td></tr></table>
+<h2>建议目录与元数据</h2><pre>YYYYMMDD_地点_路线_运行编号/
+  raw/       原始rosbag，不修改
+  calib/     内参、外参、TF、杆臂参数及文件哈希
+  meta/      天气、光照、温湿度、尘土、设备序列号/固件、同步方式
+  preview/   图像、轨迹和彩色点云快速预览
+  qc/        频率、时间差、丢帧、RTK状态、温度与回放结论</pre>
+<h2>官方资料依据</h2><ul class="note"><li><a href="https://github.com/hku-mars/FAST-LIVO2">FAST-LIVO2 官方仓库</a>：硬同步设备、FAST-Calib与融合系统要求</li><li><a href="https://github.com/hku-mars/FAST_LIO">FAST-LIO 官方仓库</a>：外部同步优先，软件同步不能保证精度</li><li><a href="https://docs.ros.org/en/ros2_packages/rolling/api/message_filters/message_filters.html">ROS 2 message_filters</a>：按消息头时间戳同步，避免到达时间和无头消息</li><li><a href="https://docs.ros.org/en/ros2_packages/jazzy/api/rclcpp/generated/classrclcpp_1_1SensorDataQoS.html">ROS 2 SensorDataQoS</a>：传感器QoS默认策略与队列深度</li><li><a href="https://docs.ros.org/en/foxy/How-To-Guides/Overriding-QoS-Policies-For-Recording-And-Playback.html">ROS 2 QoS录包覆盖</a>：显式QoS覆盖以避免话题不兼容和漏录</li><li><a href="https://docs.nvidia.com/jetson/archives/r38.4/DeveloperGuide/SD/PlatformPowerAndPerformance/JetsonThor.html">NVIDIA Jetson Thor功耗与热管理</a>：功耗模式、温度、风扇和降频监控</li></ul><h2>完整JSON</h2><pre>{
+  &quot;生成时间&quot;: &quot;2026-08-11T22:06:17+08:00&quot;,
+  &quot;适用系统&quot;: &quot;Thor开发板 + 速腾聚创LiDAR + 车规相机/IMU + 双RTK + FAST-LIVO2&quot;,
+  &quot;优先级&quot;: [
+    &quot;硬件时间同步&quot;,
+    &quot;内外参与TF&quot;,
+    &quot;供电/显示屏干扰A-B测试&quot;,
+    &quot;数据完整性&quot;,
+    &quot;环境覆盖&quot;,
+    &quot;现场抽检与双备份&quot;
+  ],
+  &quot;采集矩阵&quot;: [
+    {
+      &quot;维度&quot;: &quot;光照&quot;,
+      &quot;场景&quot;: &quot;阴天/顺光/背光/树影交替/正午强光/黄昏&quot;,
+      &quot;建议覆盖&quot;: &quot;每类≥3段，每段5~10分钟&quot;,
+      &quot;重点风险&quot;: &quot;过曝、阴影、反光、曝光跳变&quot;
+    },
+    {
+      &quot;维度&quot;: &quot;空间&quot;,
+      &quot;场景&quot;: &quot;开阔区/楼宇旁/树下/窄通道/重复纹理区&quot;,
+      &quot;建议覆盖&quot;: &quot;每类正反向各1次&quot;,
+      &quot;重点风险&quot;: &quot;GNSS遮挡、视觉退化、点云退化&quot;
+    },
+    {
+      &quot;维度&quot;: &quot;运动&quot;,
+      &quot;场景&quot;: &quot;静止/低速直行/正常速度/连续转弯/启停&quot;,
+      &quot;建议覆盖&quot;: &quot;每类≥3次&quot;,
+      &quot;重点风险&quot;: &quot;运动模糊、IMU饱和、时间偏差&quot;
+    },
+    {
+      &quot;维度&quot;: &quot;GNSS&quot;,
+      &quot;场景&quot;: &quot;RTK FIX/浮点/单点/短时拒止&quot;,
+      &quot;建议覆盖&quot;: &quot;记录状态切换前后30秒&quot;,
+      &quot;重点风险&quot;: &quot;跳变、错误初始化、评估基准失真&quot;
+    },
+    {
+      &quot;维度&quot;: &quot;环境&quot;,
+      &quot;场景&quot;: &quot;干净/尘土/轻振动/温升后&quot;,
+      &quot;建议覆盖&quot;: &quot;开机、热机20分钟后各1组&quot;,
+      &quot;重点风险&quot;: &quot;镜头污染、外参变化、热降频&quot;
+    },
+    {
+      &quot;维度&quot;: &quot;供电干扰&quot;,
+      &quot;场景&quot;: &quot;逆变器关/开；显示屏关/开；独立供电&quot;,
+      &quot;建议覆盖&quot;: &quot;固定路线A/B/A复测&quot;,
+      &quot;重点风险&quot;: &quot;屏幕干扰、丢帧、时间戳抖动&quot;
+    }
+  ],
+  &quot;现场检查表&quot;: [
+    {
+      &quot;项目&quot;: &quot;任务定义&quot;,
+      &quot;操作&quot;: &quot;先写清建图、定位、感知或导航目标；确定必须记录的话题和成功标准&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;硬时间同步&quot;,
+      &quot;操作&quot;: &quot;优先相机触发+LiDAR/IMU硬同步+GNSS 1PPS；记录硬件时间戳与同步状态&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;标定&quot;,
+      &quot;操作&quot;: &quot;保存相机内参、LiDAR-相机、LiDAR-IMU、相机-IMU外参及双RTK杆臂参数&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;坐标系&quot;,
+      &quot;操作&quot;: &quot;检查map/odom/base_link/lidar/camera/imu/gnss的TF方向、单位和右手系&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;供电隔离&quot;,
+      &quot;操作&quot;: &quot;传感器与逆变器/显示屏分支供电；检查共地、屏蔽、磁环与线束间距&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;静态段&quot;,
+      &quot;操作&quot;: &quot;每条路线开始和结束各保留30~60秒静止数据&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;话题体检&quot;,
+      &quot;操作&quot;: &quot;采集前检查频率、时间戳单调性、frame_id、QoS、丢包和诊断状态&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;录包&quot;,
+      &quot;操作&quot;: &quot;记录原始点云、原始图像、camera_info、原始IMU、双RTK、TF、诊断和同步状态&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;在线监控&quot;,
+      &quot;操作&quot;: &quot;监控磁盘写速、CPU/GPU负载、Thor温度/功耗/降频、网络丢包和剩余空间&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;现场抽检&quot;,
+      &quot;操作&quot;: &quot;每段结束立即rosbag info并回放关键片段，确认图像、点云、IMU和RTK都存在&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;元数据&quot;,
+      &quot;操作&quot;: &quot;记录天气、光照、温湿度、尘土、路线、速度、设备序列号/固件、异常事件&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;备份&quot;,
+      &quot;操作&quot;: &quot;原始包只读保存，生成SHA-256；当天至少复制到第二块介质&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;安全与隐私&quot;,
+      &quot;操作&quot;: &quot;双人作业、观察员、急停、隔离区；按场地规则处理人脸和车牌&quot;,
+      &quot;级别&quot;: &quot;必须&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;自动曝光锁定&quot;,
+      &quot;操作&quot;: &quot;对比自动曝光和锁曝光；转场明显时记录曝光参数&quot;,
+      &quot;级别&quot;: &quot;可选优化&quot;
+    },
+    {
+      &quot;项目&quot;: &quot;彩色点云预览&quot;,
+      &quot;操作&quot;: &quot;现场生成短段彩色点云，快速暴露外参或同步方向错误&quot;,
+      &quot;级别&quot;: &quot;可选优化&quot;
+    }
+  ],
+  &quot;建议质量门槛&quot;: [
+    {
+      &quot;检查项&quot;: &quot;时间戳&quot;,
+      &quot;建议门槛&quot;: &quot;严格单调；无回跳；相机-LiDAR偏差P95先以≤5 ms为调试目标&quot;,
+      &quot;失败处置&quot;: &quot;停止正式采集，检查PPS/触发线、驱动时间源和时区&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;话题频率&quot;,
+      &quot;建议门槛&quot;: &quot;实测频率在配置值±5%内，长时间无断流&quot;,
+      &quot;失败处置&quot;: &quot;降低带宽/分辨率或修复网络与QoS&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;丢帧/丢包&quot;,
+      &quot;建议门槛&quot;: &quot;正式数据目标&lt;0.1%；关键同步帧不允许连续缺失&quot;,
+      &quot;失败处置&quot;: &quot;检查SSD写速、CPU负载、网卡和QoS覆盖&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;图像质量&quot;,
+      &quot;建议门槛&quot;: &quot;目标区域不过曝、不严重模糊；抽样模糊率&lt;5%&quot;,
+      &quot;失败处置&quot;: &quot;调整曝光、增益、遮光罩、稳固支架&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;点云质量&quot;,
+      &quot;建议门槛&quot;: &quot;无整圈/整列缺失；近距离无大量自车反射；强度与距离分布稳定&quot;,
+      &quot;失败处置&quot;: &quot;清洁窗口、检查安装角度、网络和回波配置&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;RTK&quot;,
+      &quot;建议门槛&quot;: &quot;开阔段FIX比例优先≥95%；记录状态、卫星数和协方差&quot;,
+      &quot;失败处置&quot;: &quot;检查天线视野、基站链路、杆臂和电磁干扰&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;FAST-LIVO2短段回放&quot;,
+      &quot;建议门槛&quot;: &quot;无持续漂移、无明显重影；彩色点云边缘基本对齐&quot;,
+      &quot;失败处置&quot;: &quot;优先排查时间同步，其次外参、内参和图像曝光&quot;
+    },
+    {
+      &quot;检查项&quot;: &quot;Thor稳定性&quot;,
+      &quot;建议门槛&quot;: &quot;全程无热降频、掉电或OOM；磁盘余量≥预计数据量2倍&quot;,
+      &quot;失败处置&quot;: &quot;改善散热、固定功耗模式、减少并行任务或提高存储带宽&quot;
+    }
+  ],
+  &quot;数据目录&quot;: [
+    &quot;raw&quot;,
+    &quot;calib&quot;,
+    &quot;meta&quot;,
+    &quot;preview&quot;,
+    &quot;qc&quot;
+  ],
+  &quot;重要说明&quot;: &quot;数值门槛是首轮调试建议，不是官方硬性标准，必须经预实验调整&quot;,
+  &quot;官方资料&quot;: [
+    {
+      &quot;名称&quot;: &quot;FAST-LIVO2 官方仓库&quot;,
+      &quot;链接&quot;: &quot;https://github.com/hku-mars/FAST-LIVO2&quot;,
+      &quot;用途&quot;: &quot;硬同步设备、FAST-Calib与融合系统要求&quot;
+    },
+    {
+      &quot;名称&quot;: &quot;FAST-LIO 官方仓库&quot;,
+      &quot;链接&quot;: &quot;https://github.com/hku-mars/FAST_LIO&quot;,
+      &quot;用途&quot;: &quot;外部同步优先，软件同步不能保证精度&quot;
+    },
+    {
+      &quot;名称&quot;: &quot;ROS 2 message_filters&quot;,
+      &quot;链接&quot;: &quot;https://docs.ros.org/en/ros2_packages/rolling/api/message_filters/message_filters.html&quot;,
+      &quot;用途&quot;: &quot;按消息头时间戳同步，避免到达时间和无头消息&quot;
+    },
+    {
+      &quot;名称&quot;: &quot;ROS 2 SensorDataQoS&quot;,
+      &quot;链接&quot;: &quot;https://docs.ros.org/en/ros2_packages/jazzy/api/rclcpp/generated/classrclcpp_1_1SensorDataQoS.html&quot;,
+      &quot;用途&quot;: &quot;传感器QoS默认策略与队列深度&quot;
+    },
+    {
+      &quot;名称&quot;: &quot;ROS 2 QoS录包覆盖&quot;,
+      &quot;链接&quot;: &quot;https://docs.ros.org/en/foxy/How-To-Guides/Overriding-QoS-Policies-For-Recording-And-Playback.html&quot;,
+      &quot;用途&quot;: &quot;显式QoS覆盖以避免话题不兼容和漏录&quot;
+    },
+    {
+      &quot;名称&quot;: &quot;NVIDIA Jetson Thor功耗与热管理&quot;,
+      &quot;链接&quot;: &quot;https://docs.nvidia.com/jetson/archives/r38.4/DeveloperGuide/SD/PlatformPowerAndPerformance/JetsonThor.html&quot;,
+      &quot;用途&quot;: &quot;功耗模式、温度、风扇和降频监控&quot;
+    }
+  ]
+}</pre></main></body></html>

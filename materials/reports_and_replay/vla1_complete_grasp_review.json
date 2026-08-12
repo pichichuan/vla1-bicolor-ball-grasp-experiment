@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-08-11T21:13:48+08:00",
+  "attempt": 1,
+  "success": true,
+  "instruction": "把绿色的球放到红色旁边。再把红色的球放到绿色原来的位置",
+  "environment": "robosuite ColorBallPlace / Panda / MuJoCo",
+  "camera": "agentview: 96x96 control RGB + 720x720 recording RGB",
+  "control_frequency_hz": 20,
+  "video_fps": 10,
+  "video_frames": 249,
+  "video_duration_s": 24.9,
+  "scene_memory_m": {
+    "red": [
+      -0.060553,
+      0.093823,
+      0.818
+    ],
+    "green": [
+      0.075028,
+      0.0025,
+      0.818
+    ]
+  },
+  "steps": [
+    {
+      "target": "green",
+      "relation": "beside",
+      "reference": "red",
+      "phase": "done",
+      "completed": true,
+      "success": true,
+      "control_steps": 195,
+      "attempts": 1,
+      "goal_m": [
+        0.023246,
+        0.218233,
+        0.818
+      ],
+      "final_position_m": [
+        0.029343,
+        0.218257,
+        0.817633
+      ],
+      "goal_error_cm": 0.61
+    },
+    {
+      "target": "red",
+      "relation": "original",
+      "reference": "green",
+      "phase": "done",
+      "completed": true,
+      "success": true,
+      "control_steps": 204,
+      "attempts": 1,
+      "goal_m": [
+        0.075028,
+        0.0025,
+        0.818
+      ],
+      "final_position_m": [
+        0.05602,
+        0.001131,
+        0.817633
+      ],
+      "goal_error_cm": 1.906
+    }
+  ],
+  "evidence_note": "This video, JSON log, and metrics come from the same successful run."
+}
