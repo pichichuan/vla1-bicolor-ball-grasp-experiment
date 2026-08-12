@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+.venv/
+reports/stage8_gui_worker.log
+artifacts/*.mp4

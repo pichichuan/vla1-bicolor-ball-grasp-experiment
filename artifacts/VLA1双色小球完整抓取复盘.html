@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>VLA1 双色小球完整抓取复盘</title>
+<style>
+body{margin:0;background:#07110d;color:#e8f1eb;font-family:'Microsoft YaHei UI',sans-serif}
+main{max-width:1120px;margin:auto;padding:28px} h1{color:#63e59a} h2{margin-top:34px;color:#9df0bd}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px} .card{background:#10231a;border:1px solid #24593d;border-radius:12px;padding:16px}
+.value{font-size:25px;color:#6af0a0;margin-top:8px} video{width:100%;border-radius:14px;border:1px solid #2d7250;background:#000}
+table{width:100%;border-collapse:collapse;background:#0d1d16} th,td{padding:12px;border:1px solid #234d38;text-align:left}
+details{margin:10px 0;background:#0d1d16;border:1px solid #244d38;border-radius:9px;padding:12px} summary{cursor:pointer;color:#8ce9ae}
+pre{overflow:auto;background:#040906;padding:14px;border-radius:8px;line-height:1.45;color:#d7e8dc} .note{color:#a9bdb0;line-height:1.8}
+@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}}
+</style></head><body><main>
+<h1>VLA1 双色小球完整抓取复盘</h1>
+<p class="note">同一次真实 MuJoCo 执行产生的视频、结果日志与当前代码。任务：把绿色的球放到红色旁边。再把红色的球放到绿色原来的位置</p>
+<div class="grid">
+<div class="card">任务结果<div class="value">成功</div></div>
+<div class="card">绿色球误差<div class="value">0.610 cm</div></div>
+<div class="card">红色球误差<div class="value">1.906 cm</div></div>
+<div class="card">录像时长<div class="value">24.9 s</div></div>
+</div>
+<h2>完整抓取视频</h2><video controls preload="metadata"><source src="vla1_complete_grasp_review_clear.webm?v=20260811-211348-hd" type="video/webm"><source src="vla1_complete_grasp_review.mp4" type="video/mp4">浏览器不支持内嵌视频，请使用下方文件链接。</video>
+<h2>执行日志</h2>
+<table><tr><th>步骤</th><th>目标</th><th>关系</th><th>阶段</th><th>控制步</th><th>尝试</th><th>最终误差</th></tr>
+<tr><td>1</td><td>绿色球</td><td>红球旁边</td><td>done</td><td>195</td><td>1</td><td>0.610 cm</td></tr>
+<tr><td>2</td><td>红色球</td><td>绿球原位置</td><td>done</td><td>204</td><td>1</td><td>1.906 cm</td></tr></table>
+<details><summary>展开原始 JSON 日志</summary><pre>{
+  &quot;generated_at&quot;: &quot;2026-08-11T21:13:48+08:00&quot;,
+  &quot;attempt&quot;: 1,
+  &quot;success&quot;: true,
+  &quot;instruction&quot;: &quot;把绿色的球放到红色旁边。再把红色的球放到绿色原来的位置&quot;,
+  &quot;environment&quot;: &quot;robosuite ColorBallPlace / Panda / MuJoCo&quot;,
+  &quot;camera&quot;: &quot;agentview: 96x96 control RGB + 720x720 recording RGB&quot;,
+  &quot;control_frequency_hz&quot;: 20,
+  &quot;video_fps&quot;: 10,
+  &quot;video_frames&quot;: 249,
+  &quot;video_duration_s&quot;: 24.9,
+  &quot;scene_memory_m&quot;: {
+    &quot;red&quot;: [
+      -0.060553,
+      0.093823,
+      0.818
+    ],
+    &quot;green&quot;: [
+      0.075028,
+      0.0025,
+      0.818
+    ]
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;target&quot;: &quot;green&quot;,
+      &quot;relation&quot;: &quot;beside&quot;,
+      &quot;reference&quot;: &quot;red&quot;,
+      &quot;phase&quot;: &quot;done&quot;,
+      &quot;completed&quot;: true,
+      &quot;success&quot;: true,
+      &quot;control_steps&quot;: 195,
+      &quot;attempts&quot;: 1,
+      &quot;goal_m&quot;: [
+        0.023246,
+        0.218233,
+        0.818
+      ],
+      &quot;final_position_m&quot;: [
+        0.029343,
+        0.218257,
+        0.817633
+      ],
+      &quot;goal_error_cm&quot;: 0.61
+    },
+    {
+      &quot;target&quot;: &quot;red&quot;,
+      &quot;relation&quot;: &quot;original&quot;,
+      &quot;reference&quot;: &quot;green&quot;,
+      &quot;phase&quot;: &quot;done&quot;,
+      &quot;completed&quot;: true,
+      &quot;success&quot;: true,
+      &quot;control_steps&quot;: 204,
+      &quot;attempts&quot;: 1,
+      &quot;goal_m&quot;: [
+        0.075028,
+        0.0025,
+        0.818
+      ],
+      &quot;final_position_m&quot;: [
+        0.05602,
+        0.001131,
+        0.817633
+      ],
+      &quot;goal_error_cm&quot;: 1.906
+    }
+  ],
+  &quot;evidence_note&quot;: &quot;This video, JSON log, and metrics come from the same successful run.&quot;
+}</pre></details>
+<h2>关键代码</h2><details><summary>GUI入口与后台执行 · stage8_gui.py:17</summary><pre>  17  DEFAULT_TEXT = &quot;把绿色的球放到红色旁边。再把红色的球放到绿色原来的位置&quot;
+  18
+  19
+  20  class SimulationWorker(mp.Process):
+  21      def __init__(self, commands, events):
+  22          super().__init__(daemon=True)
+  23          self.commands, self.events = commands, events
+  24          self.observation = None
+  25          self.frame_count = 0
+  26
+  27      def emit_frame(self, observation, force=False):
+  28          self.frame_count += 1
+  29          if not force and self.frame_count % 4:
+  30              return
+  31          image = np.ascontiguousarray(get_image(observation)[::-1])
+  32          self.events.put((
+  33              &quot;frame&quot;, (image.shape[1], image.shape[0], image.tobytes())
+  34          ))
+  35
+  36      @staticmethod
+  37      def diagnostic(text):
+  38          path = Path(__file__).resolve().parent / &quot;reports&quot; / &quot;stage8_gui_worker.log&quot;
+  39          path.parent.mkdir(parents=True, exist_ok=True)
+  40          with path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as handle:
+  41              handle.write(text + &quot;\n&quot;)
+  42              handle.flush()
+  43
+  44      def run(self):
+  45          env = None
+  46          try:
+  47              self.diagnostic(&quot;worker_started&quot;)
+  48              self.diagnostic(&quot;creating_environment&quot;)
+  49              env = make_env(renderer=False, seed=8901, env_name=&quot;ColorBallPlace&quot;)
+  50              self.diagnostic(&quot;environment_created&quot;)
+  51              self.observation = reset_nontrivial(env)
+  52              self.diagnostic(&quot;first_reset_complete&quot;)
+  53              self.emit_frame(self.observation, force=True)
+  54              self.diagnostic(&quot;first_frame_sent&quot;)
+  55              self.events.put((&quot;ready&quot;, &quot;环境已就绪，请输入任务。&quot;))
+  56              self.diagnostic(&quot;ready_sent&quot;)
+  57              while True:
+  58                  command, payload = self.commands.get()
+  59                  if command == &quot;close&quot;:
+  60                      break
+  61                  if command == &quot;reset&quot;:
+  62                      self.observation = reset_nontrivial(env)
+  63                      self.emit_frame(self.observation, force=True)
+  64                      self.events.put((&quot;ready&quot;, &quot;场景已重置。&quot;))
+  65                  elif command == &quot;run&quot;:
+  66                      try:
+  67                          self.events.put((&quot;log&quot;, f&quot;收到指令：{payload}&quot;))
+  68                          final, plan, _, results = execute_plan(
+  69                              env, self.observation, payload,
+  70                              progress=lambda text: self.events.put((&quot;log&quot;, text)),
+  71                              frame_callback=self.emit_frame,
+  72                          )
+  73                          self.observation = final
+  74                          completed = len(results) == len(plan) and all(r.completed for r in results)
+  75                          self.events.put((&quot;ready&quot;, f&quot;执行结束：{len(results)}/{len(plan)} 步，完成={completed}&quot;))</pre></details>
+<details><summary>复合语言解析 · stage8_planner.py:31</summary><pre>  31  def parse_compound_instruction(text: str) -&gt; list[PlanStep]:
+  32      normalized = text.strip().lower().replace(&quot;的球&quot;, &quot;球&quot;)
+  33      matches = list(re.finditer(
+  34          r&quot;把\s*(红色|绿色|红|绿)球?\s*放到\s*(红色|绿色|红|绿)&quot;
+  35          r&quot;(?:球)?\s*(旁边|正前方|前方|正前面|前面|原来的位置|原位置)&quot;, normalized
+  36      ))
+  37      steps = []
+  38      for match in matches:
+  39          relation = {
+  40              &quot;旁边&quot;: &quot;beside&quot;,
+  41              &quot;正前方&quot;: &quot;front&quot;,
+  42              &quot;前方&quot;: &quot;front&quot;,
+  43              &quot;正前面&quot;: &quot;front&quot;,
+  44              &quot;前面&quot;: &quot;front&quot;,
+  45              &quot;原来的位置&quot;: &quot;original&quot;,
+  46              &quot;原位置&quot;: &quot;original&quot;,
+  47          }[match.group(3)]
+  48          steps.append(PlanStep(
+  49              COLORS_ZH[match.group(1)], relation, COLORS_ZH[match.group(2)],
+  50              match.group(0),
+  51          ))
+  52      if not steps:
+  53          english = re.finditer(
+  54              r&quot;(?:place|put|move)\s+(?:the\s+)?(red|green)\s+(?:ball\s+)?&quot;
+  55              r&quot;(next to|beside|in front of|at)\s+(?:the\s+)?(red|green)(?:&#x27;s)?\s*&quot;
+  56              r&quot;(original (?:position|location))?&quot;, normalized
+  57          )
+  58          for match in english:
+  59              relation = (
+  60                  &quot;original&quot; if match.group(4)
+  61                  else &quot;front&quot; if match.group(2) == &quot;in front of&quot;
+  62                  else &quot;beside&quot;
+  63              )
+  64              steps.append(PlanStep(
+  65                  match.group(1), relation, match.group(3), match.group(0),
+  66              ))
+  67      if not steps:
+  68          raise ValueError(&quot;无法解析任务。请使用“把绿色的球放到红色旁边”这样的表达。&quot;)
+  69      expected = len(re.findall(
+  70          r&quot;把\s*(?:红色|绿色|红|绿).*?放到&quot;, normalized
+  71      ))
+  72      expected += len(re.findall(r&quot;\b(?:place|put|move)\b&quot;, normalized))
+  73      if expected != len(steps):
+  74          raise ValueError(
+  75              f&quot;指令包含 {expected} 个动作，但只识别出 {len(steps)} 个；&quot;
+  76              &quot;系统已停止，避免只执行部分任务。&quot;
+  77          )
+  78      for step in steps:
+  79          if step.target == step.reference:
+  80              raise ValueError(&quot;目标球和参考球不能是同一个颜色。&quot;)
+  81      return steps
+  82
+  83  </pre></details>
+<details><summary>场景记忆、顺序执行与视觉纠偏 · stage8_planner.py:153</summary><pre> 153  def execute_plan(env, observation, instruction, max_steps=220, render=False,
+ 154                   image_mode=&quot;original&quot;, progress=None, frame_callback=None):
+ 155      plan = parse_compound_instruction(instruction)
+ 156      memory = capture_scene_memory(env, observation, image_mode)
+ 157      results = []
+ 158      for index, step in enumerate(plan, 1):
+ 159          tracker = BallVisionTracker(env.sim, smoothing=1.0)
+ 160          detections = tracker.update(observation, image_mode)
+ 161          if any(detections[color] is None for color in (&quot;red&quot;, &quot;green&quot;)):
+ 162              results.append(StepResult(step, np.zeros(3), False, False,
+ 163                                        &quot;vision_failed&quot;, 0))
+ 164              break
+ 165          reference = tracker.require(step.reference)
+ 166          future_destination = None
+ 167          if index &lt; len(plan):
+ 168              next_step = plan[index]
+ 169              if next_step.relation == &quot;original&quot;:
+ 170                  future_destination = memory[next_step.reference]
+ 171          if step.relation == &quot;beside&quot;:
+ 172              goal = safe_beside_goal(reference, future_destination)
+ 173          elif step.relation == &quot;front&quot;:
+ 174              camera_id = env.sim.model.camera_name2id(&quot;agentview&quot;)
+ 175              goal = front_goal(reference, env.sim.data.cam_xpos[camera_id, :2])
+ 176          else:
+ 177              goal = memory[step.reference].copy()
+ 178          goal[2] = 0.818
+ 179          if progress:
+ 180              progress(f&quot;执行 {index}/{len(plan)}：{step.source_text}&quot;)
+ 181          observation, _, success, control_steps, phase = execute_visual_place(
+ 182              env, observation, step.target, goal, max_steps, render, image_mode,
+ 183              frame_callback, motion_limit=1.0, track_until_descend=index &gt; 1,
+ 184              release_height=0.004, settle_steps=50,
+ 185              open_action=-1.0, open_steps=18, transport_height=0.24,
+ 186          )
+ 187          completed = phase == &quot;done&quot;
+ 188          results.append(StepResult(step, goal, completed, bool(success),
+ 189                                    phase, control_steps))
+ 190          if not completed:
+ 191              break
+ 192          if index &lt; len(plan):
+ 193              if progress:
+ 194                  progress(&quot;返回安全观察位，等待物体稳定&quot;)
+ 195              observation = move_to_observation_pose(
+ 196                  env, observation, frame_callback
+ 197              )
+ 198      # Task-level visual verification: later motions can disturb an earlier ball.
+ 199      # Retry only the semantic goals that are no longer satisfied.
+ 200      if len(results) == len(plan) and all(result.completed for result in results):
+ 201          for repair_round in range(2):
+ 202              pending = [
+ 203                  result for result in results
+ 204                  if visual_goal_error(
+ 205                      env, observation, result.step.target, result.goal, image_mode
+ 206                  ) &gt; 0.03
+ 207              ]
+ 208              if not pending:
+ 209                  break
+ 210              for result in pending:
+ 211                  if progress:
+ 212                      progress(
+ 213                          f&quot;视觉复核第 {repair_round + 1} 轮：修正 {result.step.target}&quot;
+ 214                      )
+ 215                  observation = move_to_observation_pose(
+ 216                      env, observation, frame_callback
+ 217                  )
+ 218                  observation, _, success, used_steps, phase = execute_visual_place(
+ 219                      env, observation, result.step.target, result.goal,
+ 220                      max_steps, render, image_mode, frame_callback,
+ 221                      motion_limit=1.0, track_until_descend=True,
+ 222                      release_height=0.004, settle_steps=50,
+ 223                      open_action=-1.0, open_steps=18, transport_height=0.24,
+ 224                  )
+ 225                  result.control_steps += used_steps
+ 226                  result.attempts += 1
+ 227                  result.phase = phase
+ 228                  result.completed = phase == &quot;done&quot;
+ 229                  result.success = bool(success)
+ 230                  if not result.completed:
+ 231                      break
+ 232          for result in results:
+ 233              result.success = (
+ 234                  result.completed
+ 235                  and visual_goal_error(
+ 236                      env, observation, result.step.target, result.goal, image_mode
+ 237                  ) &lt;= 0.03
+ 238              )
+ 239      return observation, plan, memory, results</pre></details>
+<details><summary>RGB颜色检测与坐标反投影 · stage7_vision.py:36</summary><pre>  36  def pixel_to_table(pixel, matrix, z=BALL_CENTER_Z):
+  37      # For fixed z, the 3D projection becomes a 3x3 planar homography.
+  38      homography = np.column_stack(
+  39          (matrix[:3, 0], matrix[:3, 1], z * matrix[:3, 2] + matrix[:3, 3])
+  40      )
+  41      row, column = pixel
+  42      # This project uses robosuite&#x27;s OpenGL image convention (bottom row first),
+  43      # while the pinhole matrix follows OpenCV&#x27;s top-row-first convention.
+  44      row = IMAGE_SIZE - 1 - row
+  45      world_plane = np.linalg.solve(homography, np.array([column, row, 1.0]))
+  46      world_plane /= world_plane[2]
+  47      return np.array([world_plane[0], world_plane[1], z], dtype=np.float64)
+  48
+  49  def color_mask(image, color):
+  50      rgb = image.astype(np.int16)
+  51      red, green, blue = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+  52      if color == &quot;red&quot;:
+  53          return (red &gt; 90) &amp; (red &gt; green * 1.35) &amp; (red &gt; blue * 1.25)
+  54      return (green &gt; 70) &amp; (green &gt; red * 1.20) &amp; (green &gt; blue * 1.15)
+  55
+  56  def detect_ball(image, color, matrix):
+  57      mask = color_mask(image, color)
+  58      rows, columns = np.nonzero(mask)
+  59      if len(rows) &lt; 4:
+  60          return None
+  61      # Median is robust to a few isolated colored pixels.
+  62      pixel = np.array([np.median(rows), np.median(columns)], dtype=np.float64)
+  63      world = pixel_to_table(pixel, matrix)
+  64      world[:2] -= XY_BIAS
+  65      return Detection(color, pixel, world, int(len(rows)))
+  66
+  67  class BallVisionTracker:
+  68      def __init__(self, sim, smoothing=0.65):
+  69          self.matrix = world_to_camera_matrix(sim)
+  70          self.smoothing = smoothing
+  71          self.positions = {}
+  72          self.frozen = set()
+  73
+  74      def freeze(self, color):
+  75          self.frozen.add(color)
+  76
+  77      def update(self, observation, image_mode=&quot;original&quot;):
+  78          image = get_image(observation)
+  79          if image_mode == &quot;black&quot;:
+  80              image = np.zeros_like(image)
+  81          elif image_mode != &quot;original&quot;:
+  82              raise ValueError(f&quot;Unknown image mode: {image_mode}&quot;)
+  83          detections = {}
+  84          for color in (&quot;red&quot;, &quot;green&quot;):
+  85              detection = detect_ball(image, color, self.matrix)
+  86              detections[color] = detection
+  87              if color in self.frozen or detection is None:
+  88                  continue</pre></details>
+<details><summary>完整抓放状态机 · stage6_teacher.py:30</summary><pre>  30  class BallPlaceTeacher:
+  31      def __init__(self, action_dim: int, target_key: str, reference_key: str, goal=None,
+  32                   max_motion=1.0, release_height=0.025, transport_height=0.15):
+  33          self.action_dim = action_dim
+  34          self.target_key = target_key
+  35          self.reference_key = reference_key
+  36          self.phase = &quot;approach&quot;
+  37          self.phase_step = 0
+  38          self.goal = None if goal is None else np.asarray(goal, dtype=np.float64).copy()
+  39          self.max_motion = float(max_motion)
+  40          self.release_height = float(release_height)
+  41          self.transport_height = float(transport_height)
+  42          self.settle_steps = 0
+  43          self.open_action = -1.0
+  44          self.open_steps = 18
+  45          self.lift_z = None
+  46
+  47      def motion(self, error, gain=16.0):
+  48          return np.clip(
+  49              np.asarray(error) * gain, -self.max_motion, self.max_motion
+  50          )
+  51
+  52      def act(self, observation):
+  53          eef = np.asarray(observation[&quot;robot0_eef_pos&quot;])
+  54          target = np.asarray(observation[self.target_key])
+  55          reference = np.asarray(observation[self.reference_key])
+  56          if self.goal is None:
+  57              self.goal = beside_goal(reference)
+  58          action = np.zeros(self.action_dim, dtype=np.float32)
+  59          if self.phase == &quot;approach&quot;:
+  60              error = target + np.array([0, 0, 0.10]) - eef
+  61              action[:3], action[-1] = self.motion(error), -1.0
+  62              if np.linalg.norm(error) &lt; 0.012:
+  63                  self.phase, self.phase_step = &quot;descend&quot;, 0
+  64          elif self.phase == &quot;descend&quot;:
+  65              error = target + np.array([0, 0, 0.004]) - eef
+  66              action[:3], action[-1] = self.motion(error, 13.0), -1.0
+  67              if np.linalg.norm(error) &lt; 0.008:
+  68                  self.phase, self.phase_step = &quot;close&quot;, 0
+  69          elif self.phase == &quot;close&quot;:
+  70              error = target + np.array([0, 0, 0.004]) - eef
+  71              action[:3], action[-1] = self.motion(error, 9.0), 1.0
+  72              if self.phase_step &gt;= 16:
+  73                  self.phase, self.phase_step = &quot;lift&quot;, 0
+  74                  self.lift_z = float(eef[2] + 0.16)
+  75          elif self.phase == &quot;lift&quot;:
+  76              waypoint = np.array([eef[0], eef[1], self.lift_z])
+  77              error = waypoint - eef
+  78              action[:3], action[-1] = self.motion(error, 12.0), 1.0
+  79              if abs(error[2]) &lt; 0.012:
+  80                  self.phase, self.phase_step = &quot;transport&quot;, 0
+  81          elif self.phase == &quot;transport&quot;:
+  82              waypoint = self.goal + np.array([0, 0, self.transport_height])
+  83              error = waypoint - eef
+  84              action[:3], action[-1] = self.motion(error, 12.0), 1.0
+  85              if np.linalg.norm(error) &lt; 0.015:
+  86                  self.phase, self.phase_step = &quot;lower&quot;, 0
+  87          elif self.phase == &quot;lower&quot;:
+  88              waypoint = self.goal + np.array([0, 0, self.release_height])
+  89              error = waypoint - eef
+  90              action[:3], action[-1] = self.motion(error, 10.0), 1.0
+  91              if np.linalg.norm(error) &lt; 0.012:
+  92                  next_phase = &quot;settle&quot; if self.settle_steps else &quot;open&quot;
+  93                  self.phase, self.phase_step = next_phase, 0
+  94          elif self.phase == &quot;settle&quot;:
+  95              waypoint = self.goal + np.array([0, 0, self.release_height])
+  96              error = waypoint - eef
+  97              action[:3], action[-1] = self.motion(error, 7.0), 1.0
+  98              if self.phase_step &gt;= self.settle_steps:
+  99                  self.phase, self.phase_step = &quot;open&quot;, 0
+ 100          elif self.phase == &quot;open&quot;:
+ 101              action[-1] = self.open_action
+ 102              if self.phase_step &gt;= self.open_steps:
+ 103                  self.phase, self.phase_step = &quot;retreat&quot;, 0
+ 104          elif self.phase == &quot;retreat&quot;:
+ 105              waypoint = self.goal + np.array([0, 0, 0.12])
+ 106              error = waypoint - eef
+ 107              action[:3], action[-1] = self.motion(error, 10.0), -1.0
+ 108              if np.linalg.norm(error) &lt; 0.015:
+ 109                  self.phase = &quot;done&quot;
+ 110          status = PlaceStatus(self.phase, self.phase_step)
+ 111          self.phase_step += 1
+ 112          return action, status</pre></details>
+<h2>复盘结论</h2><p class="note">语言被解析为两个顺序子任务；RGB检测建立初始场景记忆；状态机完成接近、下降、夹持、抬升、运输、稳定释放与退回；任务结束后以视觉误差复核。最终 GUI 是模块化 Language + Vision + Action 系统，不是大型端到端预训练 VLA。</p>
+</main></body></html>

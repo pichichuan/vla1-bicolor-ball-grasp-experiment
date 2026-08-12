@@ -1,0 +1,7 @@
+mujoco>=3.1
+robosuite>=1.5
+numpy>=1.24
+Pillow>=10.0
+opencv-python>=4.8
+# Optional: required by train_color_grasp.py and evaluate_color_grasp.py
+torch>=2.0
