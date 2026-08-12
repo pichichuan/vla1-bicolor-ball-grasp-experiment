@@ -6,7 +6,8 @@
 
 ## 展示证据
 
-- [24.9 秒完整成功回放（1920×1080 WebM）](artifacts/vla1_complete_grasp_review_clear.webm)
+- [在线播放：24.9 秒完整成功回放（1920×1080）](https://pichichuan.github.io/vla1-bicolor-ball-grasp-experiment/)
+- [下载原始 WebM 回放](artifacts/vla1_complete_grasp_review_clear.webm)
 - [同次运行 JSON 指标](artifacts/result.json)
 - [本地 HTML 复盘页](artifacts/VLA1双色小球完整抓取复盘.html)
 

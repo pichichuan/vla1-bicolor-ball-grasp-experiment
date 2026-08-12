@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VLA1 双色小球抓取实验</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #07110d; color: #e9f7ed; font: 16px/1.6 system-ui, "Microsoft YaHei", sans-serif; }
+    main { max-width: 1080px; margin: 0 auto; padding: 40px 20px 64px; }
+    h1 { color: #6ef0a4; margin-bottom: 4px; }
+    .note { color: #b4c9ba; margin-top: 0; }
+    video { width: 100%; display: block; background: #000; border: 1px solid #24543a; border-radius: 14px; margin: 22px 0; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .card { border: 1px solid #24543a; border-radius: 10px; padding: 14px; background: #0c1a13; }
+    .value { color: #6ef0a4; font-size: 22px; font-weight: 700; }
+    a { color: #79e6ff; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>VLA1 双色小球抓取实验</h1>
+    <p class="note">中文复合指令 → RGB 双色定位 → 初始位置记忆 → 结构化抓取与放置 → 视觉复核</p>
+    <video controls preload="metadata" poster="assets/vla1_demo_preview.png">
+      <source src="artifacts/vla1_complete_grasp_review_clear.webm" type="video/webm">
+      浏览器不支持 WebM 视频播放。
+    </video>
+    <section class="grid">
+      <div class="card">任务步骤<div class="value">2 / 2 完成</div></div>
+      <div class="card">绿色球误差<div class="value">0.61 cm</div></div>
+      <div class="card">红色球误差<div class="value">1.906 cm</div></div>
+    </section>
+    <p>该视频、指标和 JSON 来自同一次成功运行。<a href="artifacts/result.json">查看 JSON 证据</a> · <a href="https://github.com/pichichuan/vla1-bicolor-ball-grasp-experiment">查看源码</a></p>
+  </main>
+</body>
+</html>
